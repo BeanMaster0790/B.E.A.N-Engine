@@ -84,7 +84,7 @@ namespace DemoGame
 
         private void SpawnStationMushroom(int chance, Vector2 position)
         {
-            if (chance <= 100) //20%
+            if (chance <= 20) //20%
             {
                 DodgingMushroom mushroom = new DodgingMushroom() { Position = position };
 
