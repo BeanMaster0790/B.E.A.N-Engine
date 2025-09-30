@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JSON Viewer</title>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        font-family: sans-serif;
+        background-color: #2b2b2b;
+        color: white;
+    }
+
+    .container {
+        display: flex;
+        flex-direction: row;
+        height: 100%;
+        width: 100%;
+    }
+
+    .panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-width: 0; /* Prevent flex children from overflowing */
+    }
+
+    #JsonViewer {
+        flex: 1;
+        padding: 15px;
+        overflow-y: auto;
+        background-color: #3a3a3a;
+    }
+
+    .right-panel {
+        background-color: #42413f;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    #Console {
+        background-color: black;
+        flex: 0 0 25%;
+        margin: 0;
+        padding: 10px;
+        list-style: none;
+        overflow-y: auto;
+        font-size: clamp(14px, 2vw, 18px);
+    }
+
+    #PropList {
+        flex: 1;
+        margin: 0;
+        padding: 10px;
+        list-style: none;
+        overflow-y: auto;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    #PropList button {
+        flex: 1 1 auto;
+        padding: 8px 12px;
+        font-size: clamp(12px, 2vw, 16px);
+        background-color: #5a5a5a;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    #PropList button:hover {
+        background-color: #707070;
+    }
+
+    li {
+        font-size: clamp(14px, 2vw, 18px);
+        margin-bottom: 8px;
+        word-wrap: break-word;
+    }
+
+    input[type="text"] {
+        padding: 4px 8px;
+        border: 1px solid #aaa;
+        border-radius: 4px;
+        background-color: #f5f5f5;
+        color: black;
+        flex: 0 0 auto;
+    }
+
+    summary {
+        cursor: pointer;
+    }
+
+        .json-node {
+        margin-left: 1rem;
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+        padding-left: 0.75rem;
+    }
+
+    .json-key {
+        color: #4fc3f7;
+        font-weight: bold;
+    }
+
+    .json-value {
+        color: #a5d6a7;
+    }
+
+    .json-string {
+        color: #ffb74d;
+    }
+
+    .json-number {
+        color: #ff8a65;
+    }
+
+    .json-boolean {
+        color: #81d4fa;
+    }
+
+    .json-null {
+        color: #e57373;
+        font-style: italic;
+    }
+
+    details {
+        transition: all 0.2s ease;
+    }
+
+    details[open] summary::before {
+        content: "▼";
+        margin-right: 6px;
+        font-size: 0.8em;
+    }
+
+    details summary::before {
+        content: "▶";
+        margin-right: 6px;
+        font-size: 0.8em;
+    }
+
+    details summary {
+        cursor: pointer;
+        padding: 4px 6px;
+        border-radius: 4px;
+        transition: background-color 0.15s;
+    }
+
+    details summary:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    input[type="text"] {
+        margin-top: 4px;
+        padding: 4px 6px;
+        border-radius: 4px;
+        border: none;
+        background-color: #2f2f2f;
+        color: #fff;
+        font-size: 0.9em;
+        width: auto;
+        min-width: 100px;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            flex-direction: column;
+        }
+        .panel {
+            width: 100%;
+            height: 50%;
+        }
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <div id="JsonViewer" class="panel" 
+             onmouseover="MouseOverJson = true" 
+             onmouseleave="MouseOverJson = false"></div>
+
+        <div class="panel right-panel">
+            <ul id="Console"></ul>
+            <ul id="PropList"></ul>
+        </div>
+    </div>
+
+<script>
+    const socket = new WebSocket("ws://localhost:8081/ws/");
+    let MouseOverJson = false;
+
+    function focusObject(id) { socket.send(id); }
+    function sendNewVariable(message) { socket.send(message); }
+
+     function renderJson(json, container) {
+        container.innerHTML = '';
+
+        function createNode(value) {
+            if (typeof value === 'object' && value !== null) {
+                const isArray = Array.isArray(value);
+                const wrapper = document.createElement('div');
+                wrapper.classList.add('json-node');
+
+                for (let key in value) {
+                    const val = value[key];
+                    const item = document.createElement('div');
+
+                    if (typeof val === 'object' && val !== null) {
+                        const details = document.createElement('details');
+                        details.open = true;
+
+                        const summaryTag = document.createElement('summary');
+                        summaryTag.innerHTML = `<span class="json-key">${isArray ? `[${key}]` : key}</span>`;
+                        details.appendChild(summaryTag);
+                        details.appendChild(createNode(val));
+                        item.appendChild(details);
+                    } else {
+                        const label = document.createElement('span');
+                        label.classList.add('json-key');
+                        label.textContent = (isArray ? `[${key}]` : key) + ': ';
+
+                        const valSpan = document.createElement('span');
+                        valSpan.classList.add('json-value');
+
+                        if (typeof val === 'string') {
+                            valSpan.classList.add('json-string');
+                        } else if (typeof val === 'number') {
+                            valSpan.classList.add('json-number');
+                        } else if (typeof val === 'boolean') {
+                            valSpan.classList.add('json-boolean');
+                        } else if (val === null) {
+                            valSpan.classList.add('json-null');
+                        }
+
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = val;
+                        input.id = label.textContent;
+                        input.onkeydown = e => { if (e.key === "Enter") sendNewVariable(input.id + input.value); };
+
+                        valSpan.appendChild(input);
+
+                        item.appendChild(label);
+                        item.appendChild(valSpan);
+                    }
+                    wrapper.appendChild(item);
+                }
+                return wrapper;
+            } else {
+                const span = document.createElement('span');
+                span.textContent = value;
+                return span;
+            }
+        }
+
+        const tree = createNode(JSON.parse(json));
+        container.appendChild(tree);
+    }
+
+    socket.onmessage = event => {
+        if (event.data.startsWith("Log:")) {
+            const li = document.createElement("li");
+            li.style.color = event.data.split("{colour}")[1].split("{message}")[0];
+            li.textContent = event.data.split("{message}")[1];
+            document.getElementById("Console").appendChild(li);
+            document.getElementById("Console").scrollTop = document.getElementById("Console").scrollHeight;
+        }
+        else if (event.data.startsWith("List:")) {
+            const propList = event.data.replace("List:", "").split("{prop}");
+            setTimeout(() => {
+                const listElement = document.getElementById("PropList");
+                listElement.innerHTML = "";
+                propList.forEach(element => {
+                    const btn = document.createElement("button");
+                    btn.textContent = element;
+                    btn.addEventListener("click", () => focusObject(element));
+                    listElement.appendChild(btn);
+                });
+            }, 200);
+        }
+        else if (event.data.startsWith("Prop:") && !MouseOverJson) {
+            renderJson(event.data.replace("Prop:", ""), document.getElementById("JsonViewer"));
+        }
+    };
+
+    socket.onopen = () => console.log("Connected to game websocket!");
+    socket.onerror = err => console.error("WebSocket error:", err);
+</script>
+</body>
+</html>
