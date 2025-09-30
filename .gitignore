@@ -8,7 +8,6 @@
 [Dd]ebugBuild/
 [Dd]ebugSolution/
 [Bb]in/
-[Aa]ssets/
 [Oo]bj/
 
 # Ignore package files
@@ -53,3 +52,4 @@ ehthumbs.db
 
 # Ignore jetbrains folder
 .idea/
+
