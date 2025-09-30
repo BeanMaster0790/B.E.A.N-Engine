@@ -1,0 +1,55 @@
+# Ignore build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Dd]ist/
+[Dd]eploy/
+[Dd]ebugGame/
+[Dd]ebugProject/
+[Dd]ebugBuild/
+[Dd]ebugSolution/
+[Bb]in/
+[Aa]ssets/
+[Oo]bj/
+
+# Ignore package files
+*.nupkg
+*.snupkg
+packages/
+
+# Ignore user-specific files
+.vs/
+.vscode/
+.idea/
+
+# Ignore user-specific Visual Studio files
+.vs2019/
+.vs2022/
+.vs2017/
+.vsconfig/
+.vsscc
+.vssscc
+
+# Ignore build artifacts from MonoGame
+# Note: These directories and files may vary depending on your version of MonoGame.
+bin/
+obj/
+*.userprefs
+*.suo
+*.user
+*.sln.docstates
+
+# Ignore temporary files
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# Mac
+.DS_Store
+.idea/
+.vscode/
+
+# Ignore settings for Unity and other IDEs
+.idea/
+
+# Ignore jetbrains folder
+.idea/
