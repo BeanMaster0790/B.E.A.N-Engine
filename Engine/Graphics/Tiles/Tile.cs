@@ -1,15 +1,16 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System;
-using System.Collections.Generic;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Bean.Graphics.Tiles
 {
     public class Tile
     {
-        public Vector2 Position;
+        public int textureMapValue;
+        
+        public Vector2 MapPosition;
+        
+        public Vector2 DrawPosition;
 
         public Rectangle TextureRectangle;
 

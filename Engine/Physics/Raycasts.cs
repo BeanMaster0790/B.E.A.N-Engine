@@ -2,11 +2,7 @@
 using Bean.Player;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace Bean.PhysicsSystem
@@ -17,19 +13,19 @@ namespace Bean.PhysicsSystem
 
         public Collider OverlapBox(Vector2 position, int size)
         {
-            WorldProp tempSprite = new WorldProp() { Name = "TempCollider", Position = position, IsTemp = true };
+            WorldProp tempSprite = new WorldProp("TempCollider") { IsTemp = true };
+            
+            tempSprite.PropTransform.Position = position;
 
-			Collider tempCollider = new Collider()
+			Collider tempCollider = new Collider("TempCollider", size, size)
             {
-                Width = size,
-                Height = size,
                 IsRaycast = true,
-                PositionOffset = -new Vector2(size / 2, size / 2)
+                PositionOffset = -new Vector2(size / 2f, size / 2f)
 			};
 
             tempSprite.AddAddon(tempCollider);
 
-            Rectangle rayBounds = tempCollider.Rectangle;
+            Rectangle rayBounds = tempCollider.ColliderRectangle;
             if (rayBounds.Width < 0) { rayBounds.X += rayBounds.Width; rayBounds.Width = -rayBounds.Width; }
             if (rayBounds.Height < 0) { rayBounds.Y += rayBounds.Height; rayBounds.Height = -rayBounds.Height; }
 
@@ -51,21 +47,21 @@ namespace Bean.PhysicsSystem
 
         public Collider[] OverlapBoxAll(Vector2 position, int size)
         {
-            WorldProp tempSprite = new WorldProp() { Name = "TempCollider", IsTemp = true , Position = position};
+            WorldProp tempSprite = new WorldProp("TempCollider") { IsTemp = true};
+            
+            tempSprite.PropTransform.Position = position;
 
-			Collider tempCollider = new Collider()
+			Collider tempCollider = new Collider("TempCollider", size, size)
             {
-                Width = size,
-                Height = size,
                 IsRaycast = true,
-                PositionOffset = -new Vector2(size / 2, size / 2)
+                PositionOffset = -new Vector2(size / 2f, size / 2f)
 			};
 
 			tempSprite.AddAddon(tempCollider);
 
             List<Collider> results = new List<Collider>();
 
-            Rectangle rayBounds = tempCollider.Rectangle;
+            Rectangle rayBounds = tempCollider.ColliderRectangle;
             if (rayBounds.Width < 0) { rayBounds.X += rayBounds.Width; rayBounds.Width = -rayBounds.Width; }
             if (rayBounds.Height < 0) { rayBounds.Y += rayBounds.Height; rayBounds.Height = -rayBounds.Height; }
 
@@ -128,7 +124,7 @@ namespace Bean.PhysicsSystem
             }
 
             if (ClosestHit.Collider == null)
-            return null;
+                return null;
 
             return ClosestHit;
         }
@@ -224,10 +220,10 @@ namespace Bean.PhysicsSystem
 
         public ColliderEdges(Collider collider)
         {
-			Top = new Line(new Vector2(collider.Rectangle.Left, collider.Rectangle.Top), new Vector2(collider.Rectangle.Right, collider.Rectangle.Top));
-			Bottom = new Line(new Vector2(collider.Rectangle.Left, collider.Rectangle.Bottom), new Vector2(collider.Rectangle.Right, collider.Rectangle.Bottom));
-			Left = new Line(new Vector2(collider.Rectangle.Left, collider.Rectangle.Top), new Vector2(collider.Rectangle.Left, collider.Rectangle.Bottom));
-			Right = new Line(new Vector2(collider.Rectangle.Right, collider.Rectangle.Top), new Vector2(collider.Rectangle.Right, collider.Rectangle.Bottom));
+			Top = new Line(new Vector2(collider.ColliderRectangle.Left, collider.ColliderRectangle.Top), new Vector2(collider.ColliderRectangle.Right, collider.ColliderRectangle.Top));
+			Bottom = new Line(new Vector2(collider.ColliderRectangle.Left, collider.ColliderRectangle.Bottom), new Vector2(collider.ColliderRectangle.Right, collider.ColliderRectangle.Bottom));
+			Left = new Line(new Vector2(collider.ColliderRectangle.Left, collider.ColliderRectangle.Top), new Vector2(collider.ColliderRectangle.Left, collider.ColliderRectangle.Bottom));
+			Right = new Line(new Vector2(collider.ColliderRectangle.Right, collider.ColliderRectangle.Top), new Vector2(collider.ColliderRectangle.Right, collider.ColliderRectangle.Bottom));
 
 			this.Edges[0] = this.Top;
             this.Edges[1] = this.Bottom;

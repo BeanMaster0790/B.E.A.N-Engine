@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using Bean.Graphics;
 using Bean.Player;
@@ -10,7 +8,11 @@ namespace Bean.UI
 {
     public class UIContainer : ScreenProp
     {
-        protected List<ScreenProp> _children 
+        public UIContainer(string name) : base(name)
+        {
+        }
+
+        public List<ScreenProp> Children 
         {
             get
             {
@@ -207,7 +209,7 @@ namespace Bean.UI
 
             spriteBatch.Begin(samplerState: SamplerState.PointClamp, sortMode: SpriteSortMode.FrontToBack);
 
-            foreach (ScreenProp prop in this._children)
+            foreach (ScreenProp prop in this.Children)
             {
                 prop.Draw(spriteBatch);
             }
@@ -216,14 +218,15 @@ namespace Bean.UI
 
             GraphicsManager.Instance.GraphicsDevice.SetRenderTarget(null);
         }
-
+        
         public override void Destroy()
         {
             base.Destroy();
 
-            foreach(ScreenProp prop in this._children)
+            foreach (ScreenProp prop in this.Children)
             {
-                this._UIScene.RemoveUIProp(prop);
+                if(!prop.ToRemove)
+                    prop.Destroy();
             }
         }
 

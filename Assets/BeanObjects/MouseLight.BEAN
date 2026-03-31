@@ -1,0 +1,1 @@
+{"Name":"Mouse Light","Addons":{"Transform":"{\"Name\":\"MouseTrans\",\"Position\":\"0, 0\",\"Rotation\":0.0,\"Scale\":\"1, 1\",\"Layer\":0.0}","Light":"{\"Name\":\"Mouse Light\",\"Colour\":{\"R\":255,\"G\":69,\"B\":0,\"A\":255},\"Distance\":6,\"Intensity\":1.0}"}}

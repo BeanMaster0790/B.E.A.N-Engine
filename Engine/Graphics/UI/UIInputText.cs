@@ -1,4 +1,3 @@
-using System;
 using System.Buffers;
 using Bean.Player;
 using Microsoft.Xna.Framework;
@@ -8,6 +7,17 @@ namespace Bean.UI
 {
     public class UIInputText : UIText
     {
+        public enum TextInputType
+        {
+            None,
+            Alpha,
+            AlphaSymbols,
+            Int,
+            Decimal,
+        }
+        
+        public TextInputType InputType = TextInputType.None;
+        
         public string InputtedText;
         public string PlaceHolderText;
         
@@ -15,15 +25,22 @@ namespace Bean.UI
 
         private int _cursorIndex;
 
+        public EventHandler OnTextInput;
+
+        public UIInputText(string name) : base(name)
+        {
+        }
+
         public override void Start()
         {
             base.Start();
 
             InputManager.Instance.TextInput += WriteText;
 
-            _cursor = new UIContainer();
+            _cursor = new UIContainer("Cursor");
 
-            _cursor.Width = 1;
+            _cursor.Width = 2;
+            _cursor.Layer = 1;
             _cursor.Height = this._fontSysem.GetFont(this.FontSize).MeasureString("I").Y;
 
             _cursor.LocalPosition = new Vector2(0,0);
@@ -84,6 +101,7 @@ namespace Bean.UI
             if (!IsSelected)
             {
                 this._cursor.IsVisable = false;
+                this._cursorIndex = this.InputtedText.Length;
                 return;
             }
 
@@ -167,17 +185,44 @@ namespace Bean.UI
                     {
                         this.InputtedText = this.InputtedText.Remove(_cursorIndex - 1, 1);
                         this._cursorIndex--;
+                        
+                        this.OnTextInput?.Invoke(this, EventArgs.Empty);
                     }
 
                     break;
+                
                 default:
 
+                    if (this.InputType == TextInputType.Alpha)
+                    {
+                        if(!char.IsLetter(lastChar[0]))
+                            return;
+                    }
+                    else if(this.InputType == TextInputType.AlphaSymbols)
+                    {
+                        if(!char.IsLetter(lastChar[0]) && !char.IsSymbol(lastChar[0]))
+                            return;
+                    }
+                    else if(this.InputType == TextInputType.Int)
+                    {
+                        if(!char.IsDigit(lastChar[0]) && lastChar[0] != '-')
+                            return;
+                    }
+                    else if (this.InputType == TextInputType.Decimal)
+                    {
+                        if(!char.IsDigit(lastChar[0]) && (lastChar[0] != '.') && lastChar[0] != '-')
+                            return;
+                    }
+                    
+                    
                     if(string.IsNullOrEmpty(this.InputtedText))
                         this.InputtedText += lastChar;
                     else
                         this.InputtedText = this.InputtedText.Insert(_cursorIndex, lastChar);
 
                     this._cursorIndex++;
+                    
+                    this.OnTextInput?.Invoke(this, EventArgs.Empty);
                         
                     break;
             }

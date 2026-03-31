@@ -1,4 +1,3 @@
-using System;
 using Bean.Debug;
 using Bean.Player;
 using Microsoft.Xna.Framework;
@@ -12,6 +11,10 @@ namespace Bean.UI
         private float _fillValue = 100f;
 
         private float _maxFill = 100f;
+
+        public UISlider(string name) : base(name)
+        {
+        }
 
         public float MaxFill 
         {
@@ -59,7 +62,7 @@ namespace Bean.UI
             this.Layer = 0.9f;
             this.ChildrenLayer = 0.8f;
 
-            this.FillContainer = new UIContainer()
+            this.FillContainer = new UIContainer("Fill Container")
             {
                 Height = this.Height,
                 Width = this.Width,
@@ -72,7 +75,7 @@ namespace Bean.UI
 
             if (!string.IsNullOrEmpty(this.HandleTexturePath))
             {
-                this.Handle = new UIContainer()
+                this.Handle = new UIContainer("Slider Handle")
                 {
                     Width = this.HandleWidth,
                     Height = this.HandleHeight,

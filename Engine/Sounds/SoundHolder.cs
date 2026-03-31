@@ -1,7 +1,6 @@
 ﻿using Bean.Debug;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
-using System.Collections.Generic;
 using System.Xml.Serialization;
 
 namespace Bean.Sounds
@@ -12,9 +11,13 @@ namespace Bean.Sounds
 
         private SoundManager _soundManager;
 
-        public void AddSound(string name, string soundPath, bool is3D = false, bool isLooped = false)
+        public SoundHolder(string name) : base(name)
         {
             this._soundManager = this.Parent.Scene.SoundManager;
+        }
+
+        public void AddSound(string name, string soundPath, bool is3D = false, bool isLooped = false)
+        {
 
             Sound sound = new Sound(this._soundManager, FileManager.LoadFromFile<SoundEffect>(soundPath), is3D);
 
@@ -25,24 +28,11 @@ namespace Bean.Sounds
             this._soundManager.AddSound(sound);
         }
 
-        public void AddSound(SoundManager manager, string name, string soundPath, bool is3D = false, bool isLooped = false)
-        {
-            this._soundManager = manager;
-
-            Sound sound = new Sound(manager, FileManager.LoadFromFile<SoundEffect>(soundPath), is3D);
-
-            sound.IsLooped = isLooped;
-
-            this._sounds.Add(name, sound);
-
-            manager.AddSound(sound);
-        }
-
         public void RemoveSound(string name)
         {
-            this.RemoveSound(name);
-
             this._soundManager.RemoveSound(this._sounds[name]);
+            
+            this._sounds.Remove(name);
         }
 
         public void PlaySound(string name)

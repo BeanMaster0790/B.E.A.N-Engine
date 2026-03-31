@@ -1,14 +1,14 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System;
-using System.Collections.Generic;
 using Newtonsoft.Json;
 using Bean.Graphics.Animation;
-using System.IO;
+using Bean.Debug;
+using Bean.JsonVariables;
 
 namespace Bean.Graphics.Animations
 {
-    public class AnimationManager : Addon
+    [RequiresAddon(typeof(Sprite))]
+    public class AnimationManager : Addon, IJsonParsable<AnimationManager>
     {
         public Dictionary<string, Animation> Animations;
 
@@ -22,38 +22,49 @@ namespace Bean.Graphics.Animations
         private float _timer;
 
         private string _animationsDirectory;
-
-        public Texture2D Texture;
+        private string _texturePath;
 
         private Sprite _parentSprite;
 
-        public AnimationManager(string SheetTexturePath) : base()
+        private string _constructorPath;
+
+        private string _playOnceReady = "";
+
+        public AnimationManager(string name, string SheetTexturePath) : base(name)
         {
-            ChangeTexture(SheetTexturePath);
+            this._constructorPath = SheetTexturePath;
+            this._texturePath = SheetTexturePath;
         }
 
         public void ChangeTexture(string SheetTexturePath)
         {
-            this.Texture = FileManager.LoadFromFile<Texture2D>(SheetTexturePath);
+            this._parentSprite.ChangeTexture(SheetTexturePath);
+            this._texturePath =  SheetTexturePath;
 
             this._animationsDirectory = FileManager.TexturePath + SheetTexturePath + ".json";
+
+            if (!File.Exists(this._animationsDirectory))
+            {
+                return;
+            }
 
             LoadAnimations();
 
             this._isPlaying = false;
+            
+            CurrentAnimation = this.Animations.First().Value;
         }
 
         public override void Start()
         {
-            if (this.Parent is Sprite sprite)
-            {
-                this._parentSprite = sprite;
-            }
-            else
-            {
-                throw new Exception("The AnimationManager cannot be added to an obect that doesn't inherit from Sprite");
-            }
-
+            base.Start();
+            
+            this._parentSprite = this.Parent.GetAddon<Sprite>();
+            
+            ChangeTexture(this._constructorPath);
+            
+            if(!string.IsNullOrEmpty(this._playOnceReady))
+                this.Play(this._playOnceReady);
         }
 
         private void LoadAnimations()
@@ -87,15 +98,15 @@ namespace Bean.Graphics.Animations
             }
         }
 
-        public override void Draw(SpriteBatch spriteBatch)
+        public override void LateUpdate()
         {
-            if(this._parentSprite == null)
+            base.LateUpdate();
+            
+            if(CurrentAnimation == null)
                 return;
-
-            if(this.CurrentAnimation != null && this._isPlaying)
-                spriteBatch.Draw(this.Texture, base.Parent.Position - base.Parent.Scene.Camera.Position,
-                CurrentAnimation.GetTextureRectangle(),
-                this._parentSprite.Colour, MathHelper.ToRadians(base.Parent.Rotation), this._parentSprite.GetOrigin(), base.Parent.Scale, this._parentSprite.spriteEffect, base.Parent.Layer);
+                
+            this._parentSprite.ChangeSourceRect(CurrentAnimation.GetTextureRectangle());
+            //this._parentSprite.ChangeOrigin(CurrentAnimation.GetCenterOrigin());
         }
 
         public void Play(string animation)
@@ -105,6 +116,13 @@ namespace Bean.Graphics.Animations
                 this.CurrentAnimation = null;
                 return;
             }
+
+            if (this._parentSprite == null || this.Animations == null)
+            {
+                this._playOnceReady = animation;
+                return;
+            }
+                
 
             Animation animationToPlay = this.Animations[animation];
 
@@ -170,6 +188,48 @@ namespace Bean.Graphics.Animations
             }
         }
 
+        public struct AnimationManagerJson : IBeanJson
+        {
+            public string Name { get; set; }
+
+            public string AnimationPath { get; set; }
+        }
+
+        public static AnimationManager Parse(string json)
+        {
+            AnimationManagerJson? animationManagerJsonNull = JsonConvert.DeserializeObject<AnimationManagerJson>(json);
+
+            if (animationManagerJsonNull == null)
+                throw new ArgumentException("AnimationManagerJson Is Null");
+            
+            AnimationManagerJson animationsJson = (AnimationManagerJson)animationManagerJsonNull;
+
+            return new AnimationManager(animationsJson.Name, animationsJson.AnimationPath);
+        }
+
+        public void UpdateFromJson(string json)
+        {
+            AnimationManagerJson? animationManagerJsonNull = JsonConvert.DeserializeObject<AnimationManagerJson>(json);
+
+            if (animationManagerJsonNull == null)
+                throw new ArgumentException("AnimationManagerJson Is Null");
+            
+            AnimationManagerJson animationsJson = (AnimationManagerJson)animationManagerJsonNull;
+            
+            this.Name = animationsJson.Name;
+            ChangeTexture(animationsJson.AnimationPath);
+        }
+
+        public string ExportJson()
+        {
+            AnimationManagerJson json = new AnimationManagerJson()
+            {
+                Name = this.Name,
+                AnimationPath = this._texturePath,
+            };
+            
+            return JsonConvert.SerializeObject(json);
+        }
     }
 
     public class FrameEventArgs : EventArgs

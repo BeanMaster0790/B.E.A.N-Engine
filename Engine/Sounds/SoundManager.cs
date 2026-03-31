@@ -1,8 +1,6 @@
 ﻿using Bean.Debug;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
-using System;
-using System.Collections.Generic;
 
 namespace Bean.Sounds
 {

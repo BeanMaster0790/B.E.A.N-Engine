@@ -1,10 +1,6 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Bean.Player;
 using Microsoft.Xna.Framework.Input;
 using Bean.PhysicsSystem;
@@ -29,6 +25,7 @@ namespace Bean.Debug
 		private bool ShowColliders = false;
 		private bool ShowLines = false;
 		private bool SelectProp = false;
+		private bool _showFPS = false;
 
 		private UIText _fps;
 
@@ -39,27 +36,31 @@ namespace Bean.Debug
 		private List<Line> _linesToDraw = new List<Line>();
 		private List<Circle> _circlesToDraw = new List<Circle>();
 
+		private string _lastActiveScene = "";
+
 
 		public void Start()
 		{
-			this._fps = new UIText()
+#if DEBUG
+			_showFPS = true;
+#endif
+			
+			this._fps = new UIText("FPSText")
 			{
 				LocalPosition = Vector2.Zero,
 				Colour = Color.Red,
 				Width = 100,
 				Height = 50,
 				FontSize = 24,
-				Name = "FPSText"
 			};
 
-			this._propId = new UIText()
+			this._propId = new UIText("IdText")
 			{
 				LocalPosition = new Vector2(110, 0),
 				Colour = Color.Red,
 				Width = 100,
 				Height = 50,
 				FontSize = 24,
-				Name = "IdText"
 			};
 		}
 
@@ -101,6 +102,14 @@ namespace Bean.Debug
 			if (InputManager.Instance.IsKeyHeld(Keys.F12) && InputManager.Instance.WasKeyPressed(Keys.P))
 				this.SelectProp = !this.SelectProp;
 
+			if (InputManager.Instance.IsKeyHeld(Keys.F12) && InputManager.Instance.WasKeyPressed(Keys.H))
+			{
+				#if DEBUG
+				DebugServer.Log("Preforming HotReload", null);
+				FileManager.HotReloadRequested?.Invoke(this, EventArgs.Empty);
+				#endif
+			}
+
 			if (InputManager.Instance.IsKeyHeld(Keys.F12) && InputManager.Instance.WasKeyPressed(Keys.G))
 				SceneManager.Instance.ActiveScene.LightingManager.SetMapSize(this, null);
 
@@ -120,6 +129,30 @@ namespace Bean.Debug
 				Engine.Instance.GameLoopPause = !Engine.Instance.GameLoopPause;
 			}
 
+			if (InputManager.Instance.IsKeyHeld(Keys.F12) && InputManager.Instance.WasKeyPressed(Keys.E))
+			{
+#if DEBUG
+				if (!SceneManager.Instance.DoesSceneExist("Editor"))
+				{
+					PropEditor editor = new PropEditor("Editor");
+					
+					SceneManager.Instance.AddNewScene(editor);
+					SceneManager.Instance.LoadScene("Editor");
+				}
+
+				if (SceneManager.Instance.ActiveScene.Name == "Editor")
+				{
+					SceneManager.Instance.SetActiveScene(this._lastActiveScene);
+				}
+				else
+				{
+					this._lastActiveScene = SceneManager.Instance.ActiveScene.Name;
+					
+					SceneManager.Instance.SetActiveScene("Editor");
+				}
+#endif
+			}
+
 			if (InputManager.Instance.IsKeyHeld(Keys.F12) && InputManager.Instance.WasKeyPressed(Keys.L))
 				SceneManager.Instance.ActiveScene.Camera.EnableLighting = !SceneManager.Instance.ActiveScene.Camera.EnableLighting;
 
@@ -129,7 +162,10 @@ namespace Bean.Debug
 				SceneManager.Instance.ActiveScene.UIScene.AddUIProp(this._propId);
 			}
 
-			this._fps.Text = $"{Time.Instance.DrawFps}";
+			if (_showFPS)
+			{
+				this._fps.Text = $"{Time.Instance.DrawFps}";
+			}
 
 			if (this.SelectProp)
 				HandlePropSelect();
@@ -260,6 +296,20 @@ namespace Bean.Debug
 
 					spriteBatch.DrawString(this._font, displayedText, drawPosition - SceneManager.Instance.ActiveScene.Camera.Position, Color.White, 0, Vector2.Zero, 1, SpriteEffects.None, 1);
 				}
+			}
+		}
+
+		public void ToggleFps(bool enabled)
+		{
+			if (enabled)
+			{
+				this._showFPS =  true;
+				this._fps.IsVisable =  true;
+			}
+			else
+			{
+				this._showFPS = false;
+				this._fps.IsVisable =  false;
 			}
 		}
 	}

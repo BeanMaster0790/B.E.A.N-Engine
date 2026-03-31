@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using Bean;
 using Bean.Graphics;
 using Bean.Noise;
@@ -9,7 +7,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 
-namespace DemoGame 
+namespace Bean.DebugScenes
 {
     class NoiseTestScene : Scene 
     {
@@ -42,18 +40,19 @@ namespace DemoGame
 
             this.Camera.IsFreeCam = true;
 
-            Map = new Sprite();
+            WorldProp mapProp = new WorldProp("Map");
+            
+            Map = new Sprite("MapSprite", "");
+            
+            mapProp.AddAddon(Map);
 
-            Map.Texture = null;
+            this.AddToScene(mapProp);
 
-            this.AddToScene(Map);
-
-            UIAlignContainer optionsContainer = new UIAlignContainer
+            UIAlignContainer optionsContainer = new UIAlignContainer("Options Container")
             {
                 Width = 1280,
                 Height = 50,
                 AlignDirection = AlignDirection.Horizontal,
-                Name = "OptionsContainer",
                 Colour = Color.Transparent,
                 Spacing = 5,
                 isScrollable = true
@@ -91,7 +90,7 @@ namespace DemoGame
             UIAlignContainer strechYInput = CreateNoiseOption("Y Strech: ", "YS", "1", "1");
             strechYInput.Parent = optionsContainer;
 
-            UIAlignContainer genButton = new UIAlignContainer() 
+            UIAlignContainer genButton = new UIAlignContainer("Gen Button") 
             {
                 Width = 100,
                 Height = 50,
@@ -102,7 +101,7 @@ namespace DemoGame
 
             this.UIScene.AddUIProp(genButton);
 
-            UIText genText = new UIText()
+            UIText genText = new UIText("GenerateText")
             {
                 Parent = genButton,
                 Text = "Generate",
@@ -116,7 +115,7 @@ namespace DemoGame
                 GenerateMap();
             };
 
-            UIAlignContainer coloursContainer = new UIAlignContainer
+            UIAlignContainer coloursContainer = new UIAlignContainer("Colour Container")
             {
                 LocalPosition = new Vector2(0, 55),
                 Width = 100,
@@ -130,7 +129,7 @@ namespace DemoGame
 
             this.UIScene.AddUIProp(coloursContainer);
 
-            UIAlignContainer newRuleButton = new UIAlignContainer() 
+            UIAlignContainer newRuleButton = new UIAlignContainer("New Rule") 
             {
                 Width = 100,
                 Height = 25,
@@ -141,7 +140,7 @@ namespace DemoGame
 
             this.UIScene.AddUIProp(newRuleButton);
 
-            UIText newRuleText = new UIText()
+            UIText newRuleText = new UIText("Add Rule Text")
             {
                 Parent = newRuleButton,
                 Text = "Add Rule",
@@ -203,11 +202,10 @@ namespace DemoGame
                 Offset = new Vector2(1000, 1000)
             };
 
-            this.Map.Texture?.Dispose();
+            this.Map.DisposeTexture();
 
-            this.Map.Texture = null;
-
-            this.Map.Texture = this.GenerateTexture(width, height);
+            this.Map.ChangeTexture(this.GenerateTexture(width, height));
+            this.Map.ChangeOrigin(new Vector2(width / 2f, height / 2f));
         }
 
         private Texture2D GenerateTexture(int width, int height)
@@ -286,7 +284,7 @@ namespace DemoGame
 
         private UIAlignContainer CreateNoiseOption(string labelText, string name, string placeholder, string defaultValue)
         {
-            var container = new UIAlignContainer
+            var container = new UIAlignContainer(name + "Container")
             {
                 AlignDirection = AlignDirection.Horizontal,
                 VerticalAlign = VerticalAlign.Center,
@@ -294,20 +292,17 @@ namespace DemoGame
                 Width = 100,
                 Height = 50,
                 Colour = Color.Gray,
-                Name = name + "Container"
-
             };
 
-            var label = new UIText
+            var label = new UIText(name + "Label")
             {
                 Text = labelText,
                 Parent = container,
                 Colour = Color.White
             };
 
-            var input = new UIInputText
+            var input = new UIInputText(name)
             {
-                Name = name,
                 Colour = Color.White,
                 PlaceHolderText = placeholder,
                 Text = defaultValue,
@@ -325,9 +320,8 @@ namespace DemoGame
 
         private void AddColourOption()
         {
-            UIAlignContainer colourOptionContainer = new UIAlignContainer()
+            UIAlignContainer colourOptionContainer = new UIAlignContainer($"ColourOption{this.colourCount}Container")
             {
-                Name = $"ColourOption{this.colourCount}Container",
                 Parent = this.UIScene.GetPropWithName<UIAlignContainer>("ColoursContainer"),
                 AlignDirection = AlignDirection.Vertical,
                 Width = 100,
@@ -343,9 +337,8 @@ namespace DemoGame
             UIAlignContainer colourOptionHumidity = CreateNoiseOption("& < humidity: ", $"ColourOption{this.colourCount}Humidity", "1", "1");
             colourOptionHumidity.Parent = colourOptionContainer;
 
-            UIAlignContainer colourOptionColourContainer = new UIAlignContainer()
+            UIAlignContainer colourOptionColourContainer = new UIAlignContainer($"ColourOption{this.colourCount}Container")
             {
-                Name = $"ColourOption{this.colourCount}Container",
                 Parent = colourOptionContainer,
                 AlignDirection = AlignDirection.Vertical,
                 Width = 100,
@@ -363,7 +356,7 @@ namespace DemoGame
             UIAlignContainer colourOptionBlue = CreateNoiseOption("B: ", $"ColourOption{this.colourCount}Blue", "0", "0");
             colourOptionBlue.Parent = colourOptionColourContainer;
 
-            UIContainer colourPreview = new UIContainer() 
+            UIContainer colourPreview = new UIContainer("Colour Preview") 
             {
                 Width = 100,
                 Height = 50,
@@ -381,7 +374,7 @@ namespace DemoGame
 
             this.colourCount++;
 
-            UIAlignContainer destroyButton = new UIAlignContainer() 
+            UIAlignContainer destroyButton = new UIAlignContainer("Colour Preview") 
             {
                 Width = 100,
                 Height = 25,
@@ -397,7 +390,7 @@ namespace DemoGame
 
             this.UIScene.AddUIProp(destroyButton);
 
-            UIText destroyText = new UIText()
+            UIText destroyText = new UIText("Remove Rule")
             {
                 Parent = destroyButton,
                 Text = "Remove Rule (RMB)",

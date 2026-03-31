@@ -1,14 +1,13 @@
 ﻿using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
 using Microsoft.Xna.Framework.Graphics;
-using System.Linq;
 using Bean.Debug;
 using System.Net.Mail;
+using Bean.JsonVariables;
+using Newtonsoft.Json;
 
 namespace Bean.PhysicsSystem
 {
-	public class Collider : Addon
+	public class Collider : Addon, IJsonParsable<Collider>
 	{
 		public List<Collider> CheckedColliders;
 
@@ -34,20 +33,12 @@ namespace Bean.PhysicsSystem
 		private List<Collider> _lastColliders = new List<Collider>();
 		private List<Collider> _currentColliders = new List<Collider>();
 
+		private Sprite _sprite;
 
 		[DebugServerVariable]
 		public Vector2 PositionOffset;
 
-		public Rectangle Rectangle
-		{
-			get
-			{
-				if (Parent is Sprite sprite)
-					return new Rectangle((int)(sprite.GetSpriteRectangle().X + PositionOffset.X), (int)(sprite.GetSpriteRectangle().Y + PositionOffset.Y), Width, Height);
-
-				return new Rectangle((int)(Parent.Position.X + PositionOffset.X), (int)(Parent.Position.Y + PositionOffset.Y), Width, Height);
-			}
-		}
+		public Rectangle ColliderRectangle;
 
 		public bool DoesParentHavePhysicsObject;
 
@@ -58,17 +49,10 @@ namespace Bean.PhysicsSystem
 
 		public string[] IgnoreTags = new string[0];
 
-		public Collider()
+		public Collider(string name, int width, int height) : base(name)
 		{
 			this.CheckedColliders = new List<Collider>();
-		}
-
-		public override void Start()
-		{
-			base.Start();
-
-			if (!IsRaycast)
-				Physics.Instance.AddGameCollider(this);
+			
 
 			this.Edges = new ColliderEdges(this);
 
@@ -76,13 +60,25 @@ namespace Bean.PhysicsSystem
 
 			this._drawColour = new Color(Random.RandomInt(1, 255), Random.RandomInt(1, 255), Random.RandomInt(1, 255), 75);
 
+			this.Width = width;
+			this.Height = height;
+		}
+
+		public override void Start()
+		{
+			base.Start();
+			
 			this._physicsObject = Parent.GetAddon<PhysicsObject>();
 
 			if (this._physicsObject != null)
 			{
 				this.DoesParentHavePhysicsObject = true;
 			}
-
+			
+			UpdateCollider();
+			
+			if (!IsRaycast)
+				Physics.Instance.AddGameCollider(this);
 		}
 
 		public override void Update()
@@ -96,7 +92,6 @@ namespace Bean.PhysicsSystem
 
 		public bool CheckCollision(Collider collider)
 		{
-
 			if (collider == null)
 			{
 				return false;
@@ -128,9 +123,9 @@ namespace Bean.PhysicsSystem
 
 			Vector2 velocity = (this.DoesParentHavePhysicsObject) ? this._physicsObject.Velocity * Time.Instance.TargetMultiplier : Vector2.Zero;
 
-			Rectangle thisRectangle = this.Rectangle;
+			Rectangle thisRectangle = this.ColliderRectangle;
 
-			Rectangle colliderRectangle = collider.Rectangle;
+			Rectangle colliderRectangle = collider.ColliderRectangle;
 
 			if (thisRectangle.Right + velocity.X > colliderRectangle.Left &&
 				thisRectangle.Left < colliderRectangle.Left &&
@@ -195,7 +190,7 @@ namespace Bean.PhysicsSystem
 
 		public void DrawCollider(SpriteBatch spriteBatch, Texture2D texture)
 		{
-			spriteBatch.Draw(texture, new Vector2(this.Rectangle.X, this.Rectangle.Y) - base.Parent.Scene.Camera.Position, null, this._drawColour, 0, Vector2.Zero, new Vector2(this.Rectangle.Width, this.Rectangle.Height), SpriteEffects.None, 0.9f);
+			spriteBatch.Draw(texture, new Vector2(this.ColliderRectangle.X, this.ColliderRectangle.Y) - base.Parent.Scene.Camera.Position, null, this._drawColour, 0, Vector2.Zero, new Vector2(this.ColliderRectangle.Width, this.ColliderRectangle.Height), SpriteEffects.None, 0.9f);
 		}
 
 		public override void RemoveFromGame()
@@ -242,11 +237,74 @@ namespace Bean.PhysicsSystem
 			{
 				if (!this._currentColliders.Contains(collider))
 					this.OnCollisionExit?.Invoke(this, new CollisionEventArgs(collider, Vector2.Zero));
-
 			}
-        }
+			
+			UpdateCollider();
+		}
 
-    }
+		private void UpdateCollider()
+		{
+			this.ColliderRectangle = new Rectangle((int)this.Parent.PropTransform.Position.X, (int)this.Parent.PropTransform.Position.Y, (int)(this.Width * this.Parent.PropTransform.Scale.X), (int)(this.Height * this.Parent.PropTransform.Scale.Y));
+			
+			this.ColliderRectangle.Location -= new Point((int)(this.ColliderRectangle.Width / 2f), (int)(this.ColliderRectangle.Height / 2f));
+			this.ColliderRectangle.Location += new Point((int)this.PositionOffset.X, (int)this.PositionOffset.Y);
+		}
+
+		public struct ColliderJson : IBeanJson
+		{
+			public string Name { get; set; }
+
+			public int Width { get; set; }
+			public int Height { get; set; }
+			
+			public Vector2 PositionOffset { get; set; }
+		}
+
+		public static Collider Parse(string json)
+		{
+			ColliderJson? jsonNull = JsonConvert.DeserializeObject<ColliderJson>(json);
+
+			if (jsonNull == null)
+				throw new ArgumentException("Invalid Json");
+			
+			ColliderJson colliderJson = (ColliderJson)jsonNull;
+			
+			Collider collider = new Collider(colliderJson.Name, colliderJson.Width, colliderJson.Height)
+			{
+				PositionOffset =  colliderJson.PositionOffset
+			};
+			
+			return collider;
+		}
+
+		public void UpdateFromJson(string json)
+		{
+			ColliderJson? jsonNull = JsonConvert.DeserializeObject<ColliderJson>(json);
+
+			if (jsonNull == null)
+				throw new ArgumentException("Invalid Json");
+			
+			ColliderJson colliderJson = (ColliderJson)jsonNull;
+			
+			this.Name = colliderJson.Name;
+			this.Width = colliderJson.Width;
+			this.Height = colliderJson.Height;
+			this.PositionOffset = colliderJson.PositionOffset;
+		}
+
+		public string ExportJson()
+		{
+			ColliderJson  colliderJson = new ColliderJson()
+			{
+				Name = this.Name,
+				Width = this.Width,
+				Height = this.Height,
+				PositionOffset =  this.PositionOffset,
+			};
+			
+			return JsonConvert.SerializeObject(colliderJson);
+		}
+	}
 
     public class CollisionEventArgs : EventArgs
     {

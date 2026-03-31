@@ -6,8 +6,6 @@ using Bean.Scenes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using System;
-using System.Collections.Generic;
 
 namespace Bean.Graphics
 {
@@ -25,6 +23,8 @@ namespace Bean.Graphics
                 this._position = value;
             }
         }
+
+        public Color BackgroundColor = new Color(255, 255, 255, 255);
 
         internal Vector2 FreeCamPosition;
 
@@ -172,14 +172,14 @@ namespace Bean.Graphics
 			ColorDestinationBlend = Blend.Zero,
 		};
 
-		public RenderTarget2D Draw(SpriteBatch spriteBatch, List<Prop> components)
+		public RenderTarget2D Draw(SpriteBatch spriteBatch, WorldProp[] components)
         {
             GraphicsManager.Instance.GraphicsDevice.SetRenderTarget(this.CameraTarget);
 
             this._effect.View = this._viewMatrix;
             this._effect.Projection = this._projectionMatrix;
 
-            this._graphicsDevice.Clear(Color.Red);
+            this._graphicsDevice.Clear(this.BackgroundColor);
 
             RenderTarget2D lightingRenderTarget = null;
 
@@ -190,7 +190,7 @@ namespace Bean.Graphics
 
             spriteBatch.Begin(samplerState: SamplerState.PointClamp, rasterizerState: RasterizerState.CullNone, effect: this._effect, sortMode: SpriteSortMode.FrontToBack);
 
-            foreach (Prop component in components)
+            foreach (WorldProp component in components)
             {
 
                 if (component.IsVisable)
@@ -215,7 +215,7 @@ namespace Bean.Graphics
 			return this.CameraTarget;
         }
 
-        public bool InCameraBounds(Vector2 worldPosition, float Width, float height, Vector2 origin)
+        public bool InCameraBounds(Vector2 worldPosition, float width, float height, Vector2 origin)
         {
 
             float left = this.GetLeft();
@@ -225,7 +225,7 @@ namespace Bean.Graphics
             float bottom = this.GetBottom();
 
 
-            return (worldPosition.X - origin.X + Width > left && worldPosition.X - origin.X < right) && (worldPosition.Y - origin.Y + height > top && worldPosition.Y - origin.Y < bottom); 
+            return (worldPosition.X - origin.X + width > left && worldPosition.X - origin.X < right) && (worldPosition.Y - origin.Y + height > top && worldPosition.Y - origin.Y < bottom); 
         }
 
         public Vector2 ScreenToWorld(Vector2 position)

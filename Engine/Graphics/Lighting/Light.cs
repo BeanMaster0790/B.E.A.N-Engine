@@ -1,14 +1,12 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using Bean.JsonVariables;
+using Newtonsoft.Json;
 
 namespace Bean.Graphics.Lighting
 {
-	public class Light : Addon
+	public class Light : Addon, IJsonParsable<Light>
 	{
 		[DebugServerVariable]
 		public float Intencity;
@@ -21,7 +19,7 @@ namespace Bean.Graphics.Lighting
 
 		public Texture2D LightTexture;
 
-		public Light(float intencity, int distance, Color colour)
+		public Light(string name, float intencity, int distance, Color colour) : base(name)
 		{
 			this.Intencity = intencity;
 			this.Distance = distance;
@@ -40,6 +38,55 @@ namespace Bean.Graphics.Lighting
             base.RemoveFromGame();
 
 			base.Parent.Scene.LightingManager.RemoveLight(this);
+        }
+        
+        public struct LightJson : IBeanJson
+        {
+	        public string Name { get; set; }
+
+	        public JsonColour Colour { get; set; }
+	        public int Distance  { get; set; }
+	        public float Intensity  { get; set; }
+        }
+
+        public static Light Parse(string json)
+        {
+	        LightJson? lightJsonNull = JsonConvert.DeserializeObject<LightJson>(json);
+
+	        if (lightJsonNull == null)
+		        throw new ArgumentException("Invalid Json");
+	        
+	        LightJson lightJson = (LightJson)lightJsonNull;
+	        
+	        return new Light(lightJson.Name, lightJson.Intensity, lightJson.Distance,  lightJson.Colour.ToColor());
+        }
+
+        public void UpdateFromJson(string json)
+        {
+	        LightJson? lightJsonNull = JsonConvert.DeserializeObject<LightJson>(json);
+
+	        if (lightJsonNull == null)
+		        throw new ArgumentException("Invalid Json");
+	        
+	        LightJson lightJson = (LightJson)lightJsonNull;
+	        
+	        this.Name = lightJson.Name;
+	        this.Colour = lightJson.Colour.ToColor();
+	        this.Distance = lightJson.Distance;
+	        this.Intencity = lightJson.Intensity;
+        }
+
+        public string ExportJson()
+        {
+	        LightJson json = new LightJson()
+	        {
+		        Name = this.Name,
+		        Intensity = this.Intencity,
+		        Colour = JsonColour.FromColor(this.Colour),
+		        Distance = this.Distance,
+	        };
+	        
+	        return JsonConvert.SerializeObject(json);
         }
 	}
 }

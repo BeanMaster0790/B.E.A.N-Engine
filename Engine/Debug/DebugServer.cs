@@ -1,13 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.WebSockets;
 using System.Reflection;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Bean.Scenes;
 using Microsoft.Xna.Framework;
 using Newtonsoft.Json;
@@ -25,80 +19,80 @@ public static class DebugServer
     #if DEBUG
     public static void StartWebServer()
     {
-        HttpListener listener = new HttpListener();
-        listener.Prefixes.Add("http://localhost:8080/");
-        listener.Start();
-        Console.WriteLine("Server running on http://localhost:8080/");
-
-        while (true)
-        {
-            var context = listener.GetContext();
-            var request = context.Request;
-            var response = context.Response;
-
-            string responseString;
-
-            if (request.Url.AbsolutePath == "/")
-            {
-                responseString = File.ReadAllText(FileManager.ServerPath + "EngineDebug.html");
-            }
-            else
-            {
-                response.StatusCode = 404;
-                responseString = "<html><body><h1>404 Not Found</h1></body></html>";
-            }
-
-            byte[] buffer = Encoding.UTF8.GetBytes(responseString);
-            response.ContentLength64 = buffer.Length;
-            using var output = response.OutputStream;
-            output.Write(buffer, 0, buffer.Length);
-        }
+        // HttpListener listener = new HttpListener();
+        // listener.Prefixes.Add("http://localhost:8080/");
+        // listener.Start();
+        // Console.WriteLine("Server running on http://localhost:8080/");
+        //
+        // while (true)
+        // {
+        //     var context = listener.GetContext();
+        //     var request = context.Request;
+        //     var response = context.Response;
+        //
+        //     string responseString;
+        //
+        //     if (request.Url.AbsolutePath == "/")
+        //     {
+        //         responseString = File.ReadAllText(FileManager.ServerPath + "EngineDebug.html");
+        //     }
+        //     else
+        //     {
+        //         response.StatusCode = 404;
+        //         responseString = "<html><body><h1>404 Not Found</h1></body></html>";
+        //     }
+        //
+        //     byte[] buffer = Encoding.UTF8.GetBytes(responseString);
+        //     response.ContentLength64 = buffer.Length;
+        //     using var output = response.OutputStream;
+        //     output.Write(buffer, 0, buffer.Length);
+        // }
     }
 
     private static WebSocket? _connectedSocket = null;
 
     public static async void StartWebSocketServer()
     {
-        HttpListener listener = new HttpListener();
-        listener.Prefixes.Add("http://localhost:8081/ws/");
-        listener.Start();
-        Console.WriteLine("WebSocket server started on ws://localhost:8081/ws/");
-
-        while (true)
-        {
-            var context = await listener.GetContextAsync();
-
-            if (context.Request.IsWebSocketRequest)
-            {
-                var wsContext = await context.AcceptWebSocketAsync(null);
-                _connectedSocket = wsContext.WebSocket;
-
-                Console.WriteLine("WebSocket connected.");
-
-                _ = Task.Run(async () =>
-                {
-                    var buffer = new byte[1024];
-                    while (_connectedSocket.State == WebSocketState.Open)
-                    {
-                        var result = await _connectedSocket.ReceiveAsync(buffer, CancellationToken.None);
-                        var received = Encoding.UTF8.GetString(buffer, 0, result.Count);
-
-                        if (!received.Contains(": "))
-                            FocucedProp = SceneManager.Instance.ActiveScene.GetSceneProps().First(i => i.PropID == received);
-                        else
-                        {
-                            string[] split = received.Split(": ");
-
-                            string variableName = split[0];
-
-                            string value = split[1];
-
-                            FocucedProp.ChangeVariableValue(variableName, value);
-                        }
-                    }
-                });
-            }
-        }
+        // HttpListener listener = new HttpListener();
+        // listener.Prefixes.Add("http://localhost:8081/ws/");
+        // listener.Start();
+        // Console.WriteLine("WebSocket server started on ws://localhost:8081/ws/");
+        //
+        // while (true)
+        // {
+        //     var context = await listener.GetContextAsync();
+        //
+        //     if (context.Request.IsWebSocketRequest)
+        //     {
+        //         var wsContext = await context.AcceptWebSocketAsync(null);
+        //         _connectedSocket = wsContext.WebSocket;
+        //
+        //         Console.WriteLine("WebSocket connected.");
+        //
+        //         _ = Task.Run(async () =>
+        //         {
+        //             var buffer = new byte[1024];
+        //             while (_connectedSocket.State == WebSocketState.Open)
+        //             {
+        //                 var result = await _connectedSocket.ReceiveAsync(buffer, CancellationToken.None);
+        //                 var received = Encoding.UTF8.GetString(buffer, 0, result.Count);
+        //
+        //                 if (!received.Contains(": "))
+        //                     FocucedProp = SceneManager.Instance.ActiveScene.GetSceneProps().First(i => i.PropID == received);
+        //                 else
+        //                 {
+        //                     string[] split = received.Split(": ");
+        //
+        //                     string variableName = split[0];
+        //
+        //                     string value = split[1];
+        //
+        //                     FocucedProp.ChangeVariableValue(variableName, value);
+        //                 }
+        //             }
+        //         });
+        //     }
+        // }
     }
 
     
@@ -116,163 +110,72 @@ public static class DebugServer
 
     public static void Log(object message, object sender, Color? colour = null)
     {
-#if DEBUG
-        string colourString = "rgb(255,255,255)";
+        Console.WriteLine(message);
+        
+// #if DEBUG
+//         string colourString = "rgb(255,255,255)";
+//
+//         if (colour != null)
+//         {
+//             Color notNullColour = (Color)colour;
+//
+//             colourString = $"rgb({notNullColour.R},{notNullColour.G},{notNullColour.B})";
+//         }
+//
+//         string messageString = $"Log:{{colour}}{colourString}{{message}}{message}";
+//
+//         if (sender is Prop prop)
+//         {
+//             messageString = $"Log:{{colour}}{colourString}{{message}}{Time.Instance.GameTime?.TotalGameTime.TotalMilliseconds} : {prop.PropID}: {message}";
+//         }
+//
+//
+//         _ = SendToWebSocket(messageString);
+//         #endif
+    }
 
-        if (colour != null)
-        {
-            Color notNullColour = (Color)colour;
-
-            colourString = $"rgb({notNullColour.R},{notNullColour.G},{notNullColour.B})";
-        }
-
-        string messageString = $"Log:{{colour}}{colourString}{{message}}{message}";
-
-        if (sender is Prop prop)
-        {
-            messageString = $"Log:{{colour}}{colourString}{{message}}{Time.Instance.GameTime?.TotalGameTime.TotalMilliseconds} : {prop.PropID}: {message}";
-        }
-
-
-        _ = SendToWebSocket(messageString);
-        #endif
+    public static void LogWarning(object message, object sender)
+    {
+        Log($"⚠️Warning {message} ⚠️", sender, Color.Yellow);
     }
 
     public static void SendPropList()
     {
-#if DEBUG
-        if (SceneManager.Instance.ActiveScene == null)
-            return;
-
-        Prop[] props = SceneManager.Instance.ActiveScene.GetSceneProps();
-
-        string messageString = "List:";
-
-        for (int i = 0; i < props.Length; i++)
-        {
-            Prop prop = props[i];
-
-            messageString += "{prop}" + prop.PropID;
-        }
-
-        _ = SendToWebSocket(messageString);
-        #endif
+// #if DEBUG
+//         if (SceneManager.Instance.ActiveScene == null)
+//             return;
+//
+//         Prop[] props = SceneManager.Instance.ActiveScene.GetSceneProps();
+//
+//         string messageString = "List:";
+//
+//         for (int i = 0; i < props.Length; i++)
+//         {
+//             Prop prop = props[i];
+//
+//             messageString += "{prop}" + prop.PropID;
+//         }
+//
+//         _ = SendToWebSocket(messageString);
+//         #endif
     }
 
     public static void UpdateSelectedProp()
     {
-#if DEBUG
-        if (FocucedProp == null)
-            return;
-
-        if (FocucedProp.ToRemove)
-        {
-            FocucedProp = null;
-            return;
-        }
-
-
-        string json = GeneratePropJson(FocucedProp);
-
-        _ = SendToWebSocket("Prop:" + json);
-        #endif
+// #if DEBUG
+//         if (FocucedProp == null)
+//             return;
+//
+//         if (FocucedProp.ToRemove)
+//         {
+//             FocucedProp = null;
+//             return;
+//         }
+//
+//
+//         string json = GeneratePropJson(FocucedProp);
+//
+//         _ = SendToWebSocket("Prop:" + json);
+//         #endif
     }
-
-    private static string GeneratePropJson(Prop sceneProp)
-    {
-#if DEBUG
-        SceneProp scenePropData = new SceneProp();
-
-        scenePropData.PropID = sceneProp.PropID;
-        scenePropData.Name = sceneProp.Name;
-        scenePropData.Tag = sceneProp.Tag;
-
-        scenePropData.IsVisable = sceneProp.IsVisable;
-        scenePropData.IsActive = sceneProp.IsActive;
-
-        scenePropData.PropType = sceneProp.GetType().FullName;
-
-        Dictionary<string, object> propVariables = new Dictionary<string, object>();
-
-        foreach (FieldInfo field in sceneProp.GetFieldsInSceneFile())
-        {
-            if (field.GetValue(sceneProp) is Prop prop)
-            {
-                propVariables.Add(field.Name, prop.PropID);
-                continue;
-            }
-
-            propVariables.Add(field.Name, field.GetValue(sceneProp));
-        }
-
-        foreach (PropertyInfo property in sceneProp.GetPropertiesInSceneFile())
-        {
-            if (property.CanRead)
-            {
-                if (property.GetValue(sceneProp) is Prop prop)
-                {
-                    propVariables.Add(property.Name, prop.PropID);
-                    continue;
-                }
-
-                propVariables.Add(property.Name, property.GetValue(sceneProp));
-            }
-        }
-
-        scenePropData.PropVariables = propVariables;
-
-        List<PropAddon> addons = new List<PropAddon>();
-
-        if (sceneProp is WorldProp sprite)
-        {
-            foreach (Addon addon in sprite.Addons)
-            {
-                PropAddon spriteAddon = new PropAddon();
-
-                spriteAddon.AddonType = addon.GetType().FullName;
-
-                spriteAddon.AdonId = addon.PropID;
-
-                Dictionary<string, object> addonVariables = new Dictionary<string, object>();
-
-                foreach (FieldInfo field in addon.GetFieldsInSceneFile())
-                {
-                    if (field.GetValue(addon) is Prop prop)
-                    {
-                        addonVariables.Add(field.Name, prop.PropID);
-                        continue;
-                    }
-
-                    addonVariables.Add(field.Name, field.GetValue(addon));
-                }
-
-                foreach (PropertyInfo property in addon.GetPropertiesInSceneFile())
-                {
-                    if (property.CanRead)
-                    {
-                        if (property.GetValue(addon) is Prop prop)
-                        {
-                            addonVariables.Add(property.Name, prop.PropID);
-                            continue;
-                        }
-
-                        addonVariables.Add(property.Name, property.GetValue(addon));
-                    }
-                }
-
-                spriteAddon.AddonVariables = addonVariables;
-
-                addons.Add(spriteAddon);
-            }
-        }
-
-        scenePropData.propAddons = addons;
-
-        return JsonConvert.SerializeObject(scenePropData, new JsonSerializerSettings() { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
-
-#endif
-
-        return null;
-    }
-
 } 

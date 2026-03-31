@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Bean.Graphics;
 using Bean.Player;
 using Microsoft.Xna.Framework;
@@ -24,6 +21,10 @@ public class UIAlignContainer : UIContainer
 
     public float _scroll;
 
+    public UIAlignContainer(string name) : base(name)
+    {
+    }
+
     public override void Start()
     {
         base.Start();
@@ -31,13 +32,13 @@ public class UIAlignContainer : UIContainer
 
         this.OnHover += (object sender, EventArgs e) => 
         {
-            ScreenProp[] children = this._children.ToArray();
+            ScreenProp[] children = this.Children.ToArray();
 
             if(!this.isScrollable)
                 return;
 
 
-            if(InputManager.Instance.HasScrolledDown() && this._children.Count > 0)
+            if(InputManager.Instance.HasScrolledDown() && this.Children.Count > 0)
             {
                 if(this.AlignDirection == AlignDirection.Horizontal)
                 {
@@ -50,7 +51,7 @@ public class UIAlignContainer : UIContainer
                         this._scroll += 7;
                 }
             }
-            if(InputManager.Instance.HasScrolledUp()  && this._children.Count > 0)
+            if(InputManager.Instance.HasScrolledUp()  && this.Children.Count > 0)
             {
                 if(this.AlignDirection == AlignDirection.Horizontal)
                 {
@@ -72,7 +73,7 @@ public class UIAlignContainer : UIContainer
     {
         base.Update();
 
-        ScreenProp[] currentChildren = this._children.ToArray();
+        ScreenProp[] currentChildren = this.Children.ToArray();
 
 
         if (currentChildren.Length == 0)

@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using Bean.Graphics;
@@ -104,8 +102,7 @@ namespace Bean.Noise
             float lerp1 = Lerp(Gradient(aa, fx, fy), Gradient(ba, fx - 1, fy), u);
             float lerp2 = Lerp(Gradient(ab, fx, fy - 1), Gradient(bb, fx - 1, fy - 1), u);
 
-            return (Lerp(lerp1, lerp2, v) + 1f) / 2f; // shifts range from [-1,1] to [0,1]
-
+            return Lerp(lerp1, lerp2, v);
         }
 
         public float FractalNoise(float x, float y)
@@ -117,14 +114,17 @@ namespace Bean.Noise
 
             for (int i = 0; i < Octaves; i++)
             {
-                total += Noise(x * frequency * StrechX, y * frequency * StrechY) * amplitude;
+                float n = Noise(x * frequency * StrechX, y * frequency * StrechY);
+                n = n * 2f - 1f; // shift from [0,1] to [-1,1] before summing
+                total += n * amplitude;
                 maxValue += amplitude;
 
                 amplitude *= Persistence;
                 frequency *= 2f;
             }
 
-            return total / maxValue;
+            float result = total / maxValue;
+            return (result + 1f) / 2f; // back to [0,1]
         }
 
 

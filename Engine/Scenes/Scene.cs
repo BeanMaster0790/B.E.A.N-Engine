@@ -6,9 +6,6 @@ using Bean.Sounds;
 using Bean.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Bean.Scenes
 {
@@ -20,7 +17,7 @@ namespace Bean.Scenes
 
         public string Name { get; set; }
 
-        protected List<Prop> _sceneProps;
+        protected List<WorldProp> _sceneProps;
 
         public SoundManager SoundManager { get; private set; }
 
@@ -36,7 +33,7 @@ namespace Bean.Scenes
 
         public Scene(string name)
         {
-            this._sceneProps = new List<Prop>();
+            this._sceneProps = new List<WorldProp>();
 
             this.Name = name;
 
@@ -56,7 +53,7 @@ namespace Bean.Scenes
 #endif
         }
 
-        public virtual void AddToScene(Prop prop)
+        public virtual void AddToScene(WorldProp prop)
         {
             prop.Scene = this;
             this._sceneProps.Add(prop);
@@ -66,86 +63,32 @@ namespace Bean.Scenes
 
         public virtual void Draw(SpriteBatch spriteBatch)
         {
-            this.Camera.Draw(spriteBatch, this._sceneProps);
+            this.Camera.Draw(spriteBatch, this._sceneProps.ToArray());
         }
 
-        public Prop[] GetSceneProps()
+        public WorldProp[] GetSceneProps()
         {
             return this._sceneProps.ToArray();
         }
 
-        public T GetPropWithTag<T>(string tag)
+        public WorldProp GetPropWithTag(string tag)
         {
-            foreach (Prop prop in this._sceneProps.ToArray())
-            {
-                if (prop.Tag != tag)
-                    continue;
-
-                if (prop.GetType() == typeof(T))
-                    return (T)Convert.ChangeType(prop, typeof(T));
-            }
-
-            return default(T);
+            return this._sceneProps.FirstOrDefault(prop => prop.Tag == tag);
         }
 
-        public T GetPropWithName<T>(string name)
+        public WorldProp GetPropWithId(string id)
         {
-            foreach (Prop prop in this._sceneProps.ToArray())
-            {
-                if (prop.Name != name)
-                    continue;
-
-                if (prop.GetType() == typeof(T))
-                    return (T)Convert.ChangeType(prop, typeof(T));
-            }
-
-            return default(T);
+            return this._sceneProps.FirstOrDefault(prop => prop.PropID == id);
         }
 
-        public T GetPropWithId<T>(string id)
+        public WorldProp[] GetPropsWithTag(string tag)
         {
-            foreach (Prop prop in this._sceneProps.ToArray())
-            {
-                if (prop.PropID != id)
-                    continue;
-
-                if (prop.GetType() == typeof(T))
-                    return (T)Convert.ChangeType(prop, typeof(T));
-            }
-
-            return default(T);
+            return this._sceneProps.Where(prop => prop.Tag == tag).ToArray();
         }
 
-        public T[] GetPropsWithTag<T>(string tag)
+        public WorldProp GetPropWithName(string name)
         {
-            List<T> props = new List<T>();
-
-            foreach (Prop prop in this._sceneProps.ToArray())
-            {
-                if (prop.Tag != tag)
-                    continue;
-
-                if (prop.GetType() == typeof(T))
-                    props.Add((T)Convert.ChangeType(prop, typeof(T)));
-            }
-
-            return props.ToArray();
-        }
-
-        public T[] GetPropsWithName<T>(string name)
-        {
-            List<T> props = new List<T>();
-
-            foreach (Prop prop in this._sceneProps.ToArray())
-            {
-                if (prop.Name != name)
-                    continue;
-
-                if (prop.GetType() == typeof(T))
-                    props.Add((T)Convert.ChangeType(prop, typeof(T)));
-            }
-
-            return props.ToArray();
+            return this._sceneProps.FirstOrDefault(prop => prop.Name == name);
         }
 
         public T[] GetPropsWithId<T>(string id)
@@ -157,19 +100,6 @@ namespace Bean.Scenes
                 if (prop.PropID != id)
                     continue;
 
-                if (prop.GetType() == typeof(T))
-                    props.Add((T)Convert.ChangeType(prop, typeof(T)));
-            }
-
-            return props.ToArray();
-        }
-
-        public T[] GetAllPropsOfType<T>()
-        {
-            List<T> props = new List<T>();
-
-            foreach (Prop prop in this._sceneProps.ToArray())
-            {
                 if (prop.GetType() == typeof(T))
                     props.Add((T)Convert.ChangeType(prop, typeof(T)));
             }
@@ -191,11 +121,11 @@ namespace Bean.Scenes
 
         public virtual void LateUpdate()
         {
-            List<Prop> propsToremove = new List<Prop>();
+            List<WorldProp> propsToremove = new List<WorldProp>();
 
-            foreach (Prop prop in this._sceneProps.ToArray())
+            foreach (WorldProp prop in this._sceneProps.ToArray())
             {
-                if (prop.IsActive)
+                if (prop.IsActive && prop.Started)
                     prop.LateUpdate();
 
                 if (prop.ToRemove)
@@ -206,7 +136,7 @@ namespace Bean.Scenes
 
             bool removedObject = false;
 
-            foreach (Prop removeProp in propsToremove)
+            foreach (WorldProp removeProp in propsToremove)
             {
                 removeProp.RemoveFromGame();
 

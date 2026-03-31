@@ -1,102 +1,179 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Bean.Debug;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Bean.Graphics.Animations;
+using Bean.JsonVariables;
+using Newtonsoft.Json;
 
 namespace Bean
 {
-    public class Sprite : WorldProp
+    public class Sprite : Addon, IJsonParsable<Sprite>
     {
-        public AnimationManager AnimationManager;
-
+        
         public Color Colour = Color.White;
 
-        private Vector2 _origin;
-
-        public Vector2 GetOrigin()
-        {
-            if (this._userChangedOrigin)
-                return this._origin;
-
-            if (this.AnimationManager != null && !this.AnimationManager.ToRemove)
-                return this.GetAddon<AnimationManager>().CurrentAnimation.GetCenterOrigin();
-
-            if (this.Texture == null)
-                return Vector2.Zero;
-
-            return new Vector2(this.Texture.Width / 2, this.Texture.Height / 2);
-        }
-
-		private bool _userChangedOrigin;
+        public Vector2 Origin { get; private set; }
         
-        public SpriteEffects spriteEffect;
+        private SpriteEffects _spriteEffect;
 
-        public Texture2D Texture;
+        private Texture2D _texture;
+        public string _texturePath;
+        
+        private Rectangle? _sourceRect;
 
-        private string _texturePath;
+        public Rectangle SpriteRectangle {get; private set;}
+        
+        private bool _ownTexture;
 
-        public string TexturePath 
-        {  
-            get 
-            { 
-                return this._texturePath;  
-            } 
-            set 
-            { 
-                this._texturePath = value;
-                this.Texture = FileManager.LoadFromFile<Texture2D>(this._texturePath);
-            } 
-        }
-
-        public Rectangle GetSpriteRectangle()
+        public Sprite(string name, string texturePath) : base(name)
         {
-            if (this.AnimationManager != null)
-            {
-                Vector2 widthAndHeight = this.AnimationManager.CurrentAnimation.GetFrameDimentions();
-                return new Rectangle((int)(Position.X - GetOrigin().X * this.Scale), (int)(Position.Y - GetOrigin().Y * this.Scale), (int)(widthAndHeight.X * this.Scale), (int)(widthAndHeight.Y * this.Scale));
-            }
-
-            if (Texture != null)
-                return new Rectangle((int)(Position.X - GetOrigin().X * this.Scale), (int)(Position.Y - GetOrigin().Y * this.Scale), (int)(this.Texture.Width * this.Scale), (int)(this.Texture.Height * this.Scale));
-            else
-                return Rectangle.Empty;
-        }
-
-        public Sprite() : base()
-        {
+            if(string.IsNullOrEmpty(texturePath))
+                return;
             
+            ChangeTexture(texturePath);
+            ChangeOrigin(new Vector2((float)this._texture.Width / 2, (float)this._texture.Height / 2));
+            ChangeSourceRect(null);
+            ChangeSpriteEffect(SpriteEffects.None);
+        }
+
+        public void ChangeTexture(string texturePath)
+        {
+            if (string.IsNullOrEmpty(texturePath))
+            {
+                this._texture = null;
+                return;
+            }
+            
+            this._texture = FileManager.LoadFromFile<Texture2D>(texturePath);
+            _ownTexture = false;
+            this._texturePath =  texturePath;
+        }
+
+        public void ChangeTexture(Texture2D texture)
+        {
+            this._texture = texture;
+            _ownTexture = true;
+        }
+
+        public void ChangeOrigin(Vector2 origin)
+        {
+            this.Origin = origin;
+        }
+
+        public void ChangeSourceRect(Rectangle? sourceRect)
+        {
+            this._sourceRect = sourceRect;
+        }
+
+        public void ChangeSpriteEffect(SpriteEffects spriteEffect)
+        {
+            this._spriteEffect = spriteEffect;
+        }
+
+        public void DisposeTexture()
+        {
+            if (!this._ownTexture)
+            {
+                DebugServer.LogWarning("You tried disposing a texture which belongs to the AssetManager. Ignoring request to avoid errors!", this);
+                return;
+            }
+            
+            this._texture.Dispose();
+            this._texture = null;
         }
 
         public override void Draw(SpriteBatch spriteBatch)
         {
             base.Draw(spriteBatch);
-
-            if (this.AnimationManager != null)
-            {
-                this.AnimationManager.Draw(spriteBatch);
-            }
-
-            else if (this.Texture != null)
-                spriteBatch.Draw(this.Texture, this.Position - base.Scene.Camera.Position, null, this.Colour, MathHelper.ToRadians(this.Rotation), this.GetOrigin(), this.Scale, this.spriteEffect, this.Layer);
+            
+            if(_texture == null)
+                return;
+            
+            spriteBatch.Draw(this._texture, this.Parent.PropTransform.GetDrawPosition(), this._sourceRect, this.Colour, MathHelper.ToRadians(this.Parent.PropTransform.Rotation),
+                this.Origin, this.Parent.PropTransform.Scale, this._spriteEffect, this.Parent.PropTransform.Layer);
 		}
 
-        public override void Start()
+        public override void LateUpdate()
         {
-            base.Start();
+            base.LateUpdate();
+            
+            if(this._sourceRect == null)
+                this.SpriteRectangle = new Rectangle((int)this.Parent.PropTransform.Position.X,  (int)this.Parent.PropTransform.Position.Y, 
+                    (int)(this._texture.Width * this.Parent.PropTransform.Scale.X), (int)(this._texture.Height * this.Parent.PropTransform.Scale.Y));
+            else
+                this.SpriteRectangle = new Rectangle((int)this.Parent.PropTransform.Position.X,  (int)this.Parent.PropTransform.Position.Y, 
+                    (int)(this._sourceRect.Value.Width * this.Parent.PropTransform.Scale.X), (int)(this._sourceRect.Value.Height * this.Parent.PropTransform.Scale.Y));
+        }
+        
+        public struct SpriteJson : IBeanJson
+        {
+            public string Name { get; set; }
+
+            public JsonColour Colour { get; set; }
+            public Vector2  Origin { get; set; }
+            
+            public string TexturePath { get; set; }
+            public SpriteEffects SpriteEffect { get; set; }
         }
 
-        public void SetOrigin(Vector2 origin)
+        public static Sprite Parse(string json)
         {
-            this._origin = origin;
-            this._userChangedOrigin = true;
+            SpriteJson? spriteJsonNull = JsonConvert.DeserializeObject<SpriteJson>(json);
+            
+            if(spriteJsonNull == null)
+                throw new  ArgumentException("JSON string is null");
+
+            SpriteJson spriteJson = (SpriteJson)spriteJsonNull;
+
+            Sprite returnSprite = new Sprite(spriteJson.Name, spriteJson.TexturePath)
+            {
+                Colour =  spriteJson.Colour.ToColor(),
+            };
+            
+            if(returnSprite.Origin !=  Vector2.Zero)
+                returnSprite.ChangeOrigin(spriteJson.Origin);
+            
+            returnSprite.ChangeSpriteEffect(spriteJson.SpriteEffect);
+
+            return returnSprite;
         }
 
-        public override void AddAddon(Addon addon)
+        public void UpdateFromJson(string json)
         {
-            base.AddAddon(addon);
+            SpriteJson? spriteJsonNull = JsonConvert.DeserializeObject<SpriteJson>(json);
+            
+            if(spriteJsonNull == null)
+                throw new  ArgumentException("JSON string is null");
 
-            if(addon is AnimationManager animation)
-                this.AnimationManager = animation;
+            SpriteJson spriteJson = (SpriteJson)spriteJsonNull;
+            
+            this.Name = spriteJson.Name;
+            this.Colour = spriteJson.Colour.ToColor();
+            
+            this.ChangeTexture(spriteJson.TexturePath);
+            this.ChangeSourceRect(null);
+            this.ChangeOrigin(spriteJson.Origin);
+            this.ChangeSpriteEffect(spriteJson.SpriteEffect);
         }
 
-	}
+
+        public string ExportJson()
+        {
+            SpriteJson spriteJson = new SpriteJson()
+            {
+                Name = this.Name,
+                Colour = JsonColour.FromColor(this.Colour),
+                Origin = this.Origin,
+                TexturePath = this._texturePath,
+                SpriteEffect =  this._spriteEffect,
+            };
+            
+            spriteJson.Name = this.Name;
+            spriteJson.Colour = JsonColour.FromColor(this.Colour);
+            spriteJson.TexturePath = this._texturePath;
+            spriteJson.SpriteEffect = this._spriteEffect;
+            
+            return JsonConvert.SerializeObject(spriteJson);
+        }
+    }
 }

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Bean.Debug;
 
 namespace Bean.Scenes
 {
@@ -11,30 +10,50 @@ namespace Bean.Scenes
 
         private Dictionary<string, Scene> _scenes = new Dictionary<string, Scene>();
 
+        SceneManager()
+        {
+            FileManager.HotReloadRequested += HotReloadRequested;
+        }
+
+        private void HotReloadRequested(object sender, EventArgs e)
+        {
+#if DEBUG
+            foreach (WorldProp prop in ActiveScene.GetSceneProps())
+            {
+                if(!string.IsNullOrEmpty(prop.LoadedFromFile))
+                    prop.UpdateFromFile();
+            }
+#endif
+        }
+
         public void AddNewScene(Scene scene)
         {
-            DoesSceneExist(scene.Name, flip: true);
+            DebugServer.Log("Adding new scene " + scene.Name, null);
+            DoesSceneExistError(scene.Name, flip: true);
 
             _scenes.Add(scene.Name, scene);
         }
 
         public void LoadScene(string sceneName)
         {
-            DoesSceneExist(sceneName);
+            DebugServer.Log("Loading scene " + sceneName, null);
+            DoesSceneExistError(sceneName);
 
             _scenes[sceneName].LoadScene(caller: this);
         }
 
         public void RemoveScene(string sceneName)
         {
-            DoesSceneExist(sceneName);
+            DebugServer.Log("Removing scene " + sceneName, null);
+            DoesSceneExistError(sceneName);
 
             _scenes.Remove(sceneName);
         }
 
         public void SetActiveScene(string sceneName)
         {
-            DoesSceneExist(sceneName);
+            DebugServer.Log("Setting active scene " + sceneName + ". This does not unload the last active scene", null);
+            DoesSceneExistError(sceneName);
 
             Scene scene = _scenes[sceneName];
 
@@ -47,25 +66,53 @@ namespace Bean.Scenes
 
         public void UnloadScene(string sceneName)
         {
-            DoesSceneExist(sceneName);
+            DebugServer.Log("Unloading scene " + sceneName, null);
+            DoesSceneExistError(sceneName);
 
             _scenes[sceneName].UnloadScene(caller: this);
         }
 
+        public void UnloadAllScenes()
+        {
+            this.ActiveScene = null;
+            
+            foreach (var scene in _scenes.Values)
+            {
+                UnloadScene(scene.Name);
+            }
+        }
 
-        public void DoesSceneExist(string sceneName, bool flip = false)
+
+        public void DoesSceneExistError(string sceneName, bool flip = false)
         {
             if (this._scenes.TryGetValue(sceneName, out Scene scene))
             {
                 if (scene == null && !flip)
                 {
-                    throw new NullReferenceException($"'{sceneName}' Does not excit! You may need to add your scene using 'AddNewScene()'.");
+                    throw new NullReferenceException($"'{sceneName}' Does not exist! You may need to add your scene using 'AddNewScene()'.");
                 }
                 else if (scene != null && flip)
                 {
                     throw new Exception($"'{sceneName}' Already exists!");
                 }
             }
+        }
+        
+        public bool DoesSceneExist(string sceneName)
+        {
+            if (this._scenes.TryGetValue(sceneName, out Scene scene))
+            {
+                if (scene == null)
+                {
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
     }

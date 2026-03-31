@@ -2,11 +2,7 @@
 using Bean.PhysicsSystem;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Bean.Graphics.Lighting
 {
@@ -99,7 +95,7 @@ namespace Bean.Graphics.Lighting
 
 			Texture2D texture = this._renderedTextures[lightKey];
 
-			spriteBatch.Draw(texture, light.Parent.Position - this._camera.Position, null, Color.White, 0f, new Vector2(texture.Width / 2, texture.Height / 2), 1, SpriteEffects.None, 0);
+			spriteBatch.Draw(texture, light.Parent.PropTransform.GetDrawPosition(), null, Color.White, 0f, new Vector2(texture.Width / 2, texture.Height / 2), 1, SpriteEffects.None, 0);
         }
 
         private void GenerateLight(Light light, string lightKey)

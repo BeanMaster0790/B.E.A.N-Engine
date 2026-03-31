@@ -1,13 +1,10 @@
 using Microsoft.Xna.Framework;
 using Bean.Graphics;
-using System.Collections.Generic;
 using Microsoft.Xna.Framework.Graphics;
 using System.ComponentModel;
-using System;
 using Bean.Scenes;
 using Bean.Player;
 using Microsoft.Xna.Framework.Input;
-using System.Linq;
 
 namespace Bean.UI
 {

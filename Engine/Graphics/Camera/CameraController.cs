@@ -1,4 +1,3 @@
-using System;
 using Bean.Player;
 using Bean.Scenes;
 using Microsoft.Xna.Framework;

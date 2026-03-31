@@ -4,12 +4,8 @@ using Bean.Player;
 using Bean.Scenes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.Serialization;
-using System.Threading;
 
 namespace Bean.PhysicsSystem
 {
@@ -83,11 +79,11 @@ namespace Bean.PhysicsSystem
             int maxGridX = this._grid[this._grid.Count - 1].GridRectangle.Right;
             int maxGridY = this._grid[this._grid.Count - 1].GridRectangle.Bottom;
 
-            int minPosX = collider.Rectangle.Left;
-            int minPosY = collider.Rectangle.Top;
+            int minPosX = collider.ColliderRectangle.Left;
+            int minPosY = collider.ColliderRectangle.Top;
 
-            int maxPosX = collider.Rectangle.Right;
-            int maxposY = collider.Rectangle.Bottom;
+            int maxPosX = collider.ColliderRectangle.Right;
+            int maxposY = collider.ColliderRectangle.Bottom;
 
             if (minPosX < minGridX || minPosY < minGridY || maxPosX > maxGridX || maxposY > maxGridY)
             {
@@ -109,7 +105,7 @@ namespace Bean.PhysicsSystem
 
             foreach (Collider collider in this._gameColliders)
             {
-                Rectangle colliderRect = collider.Rectangle;
+                Rectangle colliderRect = collider.ColliderRectangle;
 
                 if (colliderRect.Left < minPosX)
                 {
@@ -170,7 +166,7 @@ namespace Bean.PhysicsSystem
 
             List<CollisonGridSquare> newSquares = new List<CollisonGridSquare>();
 
-            Rectangle rect = collider.Rectangle;
+            Rectangle rect = collider.ColliderRectangle;
 
             int minX = rect.Left / _gridSplitValue;
             int maxX = rect.Right / _gridSplitValue;

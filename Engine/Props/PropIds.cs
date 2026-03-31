@@ -1,4 +1,3 @@
-using System;
 using Bean.Debug;
 using Microsoft.Xna.Framework;
 

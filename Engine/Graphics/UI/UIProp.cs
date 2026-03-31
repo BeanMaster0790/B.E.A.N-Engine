@@ -1,4 +1,3 @@
-using System;
 using System.Buffers;
 using System.Security.Cryptography.X509Certificates;
 using Bean.Graphics;
@@ -164,6 +163,7 @@ namespace Bean.UI
         public EventHandler OnRightClick;
         public EventHandler OnLeftClickHold;
         public EventHandler OnRightClickHold;
+        public EventHandler OnDestroy;
 
         public bool IsSelected;
 
@@ -173,14 +173,18 @@ namespace Bean.UI
 
         public SoundHolder soundHolder;
 
-        public ScreenProp()
+        public ScreenProp(string name) : base(name)
         {
-            this.soundHolder = new SoundHolder();
         }
 
         public override void Start()
         {
             base.Start();
+        }
+
+        public void AddSoundHolder()
+        {
+            this.soundHolder = new SoundHolder("SoundHolder");
         }
 
         public override void Draw(SpriteBatch spriteBatch)
@@ -191,11 +195,19 @@ namespace Bean.UI
                 Update();
         }
 
+        public override void Destroy()
+        {
+            base.Destroy();
+            
+            OnDestroy?.Invoke(this, EventArgs.Empty);
+        }
+
         public override void Update()
         {
             base.Update();
 
-            this.soundHolder.Update();
+            if (soundHolder != null)
+                this.soundHolder.Update();
         }
 
         public override void LateUpdate()

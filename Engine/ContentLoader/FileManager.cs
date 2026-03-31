@@ -1,22 +1,25 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
+using System.Net.Mime;
+using Bean.Debug;
 using Bean.Graphics;
 using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
+using Newtonsoft.Json;
 
 namespace Bean
 {
     public static class FileManager
     {
+        private static string _projectPath = "";
+        
         private static string _assetFolderPath = "/Assets/";
         private static string _textureFolderPath = "/Assets/Textures/";
         private static string _fontFolderPath = "/Assets/Fonts/";
         private static string _audioFolderPath = "/Assets/Audio/";
         private static string _sceneFolderPath = "/Assets/Scenes/";
         private static string _tiledMapFolderPath = "/Assets/Maps/";
+        private static string _beanObjectsFolderPath = "/Assets/BeanObjects/";
 
 #if DEBUG
         private static string _debugFolderPath = "/Assets/DontShip/";
@@ -42,6 +45,8 @@ namespace Bean
 #endif
 
         private static Dictionary<string, object> _loadedItems = new Dictionary<string, object>();
+        
+        private static Dictionary<string, string> _loadedProps = new Dictionary<string, string>();
 
         public static string AssetsPath
         {
@@ -91,15 +96,40 @@ namespace Bean
             }
         }
 
+        public static string BeanObjectsPath
+        {
+            get 
+            {
+                return Directory.GetCurrentDirectory() + _beanObjectsFolderPath;
+            }
+        }
+
+        public static string ProjectPath
+        {
+            get
+            {
+                return _projectPath;
+            }
+        }
+
+        public static EventHandler HotReloadRequested;
+
 
         public static void CreateProjectFolders()
         {
 #if DEBUG
+            HotReloadRequested += (sender, args) =>
+            {
+                _loadedProps.Clear();
+            };
+            
             string binName = new DirectoryInfo(Directory.GetCurrentDirectory()).Parent.Parent.Name;
 
             if (binName == "bin")
             {
                 DirectoryInfo projectPath = new DirectoryInfo(Directory.GetCurrentDirectory()).Parent.Parent.Parent;
+                
+                _projectPath = projectPath.FullName;
 
                 if (!Directory.Exists(projectPath + _assetFolderPath))
                 {
@@ -141,6 +171,11 @@ namespace Bean
                     Directory.CreateDirectory(projectPath + _webServerFolderPath);
                 }
 
+                if (!Directory.Exists(projectPath + _beanObjectsFolderPath))
+                {
+                    Directory.CreateDirectory(projectPath + _beanObjectsFolderPath);
+                }
+
 
             }
 
@@ -167,15 +202,100 @@ namespace Bean
             }
         }
 
-        public static T LoadFromFile<T>(string filePath, bool premultiplyAlpha = false)
+        public static void SaveWorldPropToFile(WorldProp worldProp, string filePath)
+        {
+            string json = worldProp.ExportJson();
+
+            string destinationFile = _projectPath + _beanObjectsFolderPath + filePath + ".BEAN";
+            
+            File.WriteAllText(destinationFile, json);
+        }
+
+        public static WorldProp LoadWorldPropFromFile(string filePath)
+        {
+            DebugServer.Log("Loading WorldProp: " + filePath, null);
+
+            string json = "";
+            
+            if(_loadedProps.ContainsKey(filePath))
+                json = _loadedProps[filePath];
+            else
+            {
+#if !DEBUG
+                json = File.ReadAllText(BeanObjectsPath + filePath + ".BEAN");
+#else
+
+                json = File.ReadAllText(_projectPath + _beanObjectsFolderPath + filePath + ".BEAN");
+#endif
+            }
+            
+            if(!_loadedProps.ContainsKey(filePath))
+                _loadedProps.Add(filePath, json);
+            
+            WorldProp prop = WorldProp.Parse(json);
+            
+            prop.LoadedFromFile =  filePath;
+            
+            return prop;
+        }
+        
+        public static T GetAddonFromJson<T>(string json)
+        {
+            var addon = JsonConvert.DeserializeObject<T>(json);
+            
+            if(addon == null)
+                throw new ArgumentException("Invalid Json");
+            
+            return addon;
+        }
+
+        public static T LoadFromFile<T>(string filePath, bool premultiplyAlpha = false, bool loadedOnly = false)
         {
             object obj = null;
 
+            string keyName = filePath + $"({typeof(T).Name})";
+            
+            if (_loadedItems.ContainsKey(keyName))
+            {
+                //DebugServer.Log("Using Cached Asset: " + fullPath, null);
+                return (T)_loadedItems[keyName];
+            }
+            
+            if (loadedOnly)
+                return default(T);
+            
             string fullPath = GetFilePath(filePath, typeof(T));
 
-            if (_loadedItems.ContainsKey(fullPath))
-                return (T)_loadedItems[fullPath];
+            if (!File.Exists(fullPath))
+            {
+                if (typeof(T) == typeof(Texture2D))
+                {
+                    Texture2D texture = new Texture2D(GraphicsManager.Instance.GraphicsDevice, 16, 16);
+                    
+                    Color[] cols =  new Color[texture.Width * texture.Height];
 
+                    for (int i = 0; i < cols.Length; i++)
+                    {
+                        if(i % 5 < 5)
+                            cols[i] = Color.Purple;
+                        else
+                        {
+                            cols[i] = Color.Black;
+                        }
+                    }
+                    
+                    texture.SetData(cols);
+                    
+                    obj = texture;
+
+                    return (T)obj;
+                }
+                else
+                    throw  new FileNotFoundException($"File not found: {fullPath}");
+            }
+            
+            DebugServer.Log("Loading Asset: " + fullPath, null);
+            
             if (typeof(T) == typeof(Texture2D))
             {
                 if (!premultiplyAlpha)
@@ -211,8 +331,9 @@ namespace Bean
 
             else
                 throw new NotImplementedException($"Unsupported Type: {typeof(T).Name}");
-
-            _loadedItems.Add(fullPath, obj);
+            
+            if(obj != null)
+                _loadedItems.Add(keyName, obj);
 
             return (T)obj;
         }
@@ -278,6 +399,24 @@ namespace Bean
             source.Dispose();
 
             return result;
+        }
+
+        public static void DisposeAsset(string filePath)
+        {
+            DebugServer.Log("Unloading Asset: " + filePath, null);
+            
+            IDisposable disposable = _loadedItems[filePath] as IDisposable;
+            
+            disposable?.Dispose();
+            _loadedItems.Remove(filePath);
+        }
+
+        public static void UnloadAllAssets()
+        {
+            foreach (KeyValuePair<string, object> pair in _loadedItems)
+            {
+                DisposeAsset(pair.Key);
+            }
         }
 
     }

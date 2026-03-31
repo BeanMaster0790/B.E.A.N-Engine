@@ -2,12 +2,9 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
+using Bean.JsonVariables;
 
 namespace Bean
 {
@@ -15,11 +12,16 @@ namespace Bean
 	{
 		public WorldProp Parent;
 
+		public Addon(string name) : base(name)
+		{
+			
+		}
+
 		public override void Destroy()
 		{
 			base.Destroy();
-
-			this.Parent.Addons.Remove(this);
+			
+			this.Parent.RemoveAddon(this);
         }
 	}
 }

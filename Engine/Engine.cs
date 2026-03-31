@@ -2,17 +2,10 @@
 using Bean.PhysicsSystem;
 using Bean.Player;
 using Bean.Scenes;
-using Bean;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System;
 using System.Diagnostics;
-using System.IO;
-using System.Threading;
 using Bean.Graphics;
-using Bean.UI;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace Bean
 {
@@ -107,6 +100,9 @@ namespace Bean
 
         protected override void Initialize()
         {
+            DebugManager.Instance.Start();
+            
+            DebugServer.Log("Initializing Engine", this);
             base.Initialize();
 
             Window.TextInput += InputManager.Instance.ReciveOSKeyPress;
@@ -114,18 +110,20 @@ namespace Bean
 
         protected override void LoadContent()
         {
+            DebugServer.Log("Creating Sprite Batch", this);
             _spriteBatch = new SpriteBatch(GraphicsDevice);
-
+            
+            DebugServer.Log("Creating Project Folders", this);
             FileManager.CreateProjectFolders();
 
             Globals.Content = Content;
-
+            
+            DebugServer.Log("Initializing Graphics Manager", this);
             GraphicsManager.Instance.StartGame(this.GraphicsDevice, this._graphics);
             GraphicsManager.Instance.SetFullScreen(false);
             GraphicsManager.Instance.SetGameResolution(1280, 720);
             GraphicsManager.Instance.ApplyChanges();
 
-            DebugManager.Instance.Start();
 
             this.Open();
             this.Load();
@@ -145,9 +143,15 @@ namespace Bean
         {
 
         }
+        
 
-        protected override void OnExiting(object sender, EventArgs args)
+        protected override void OnExiting(object sender, ExitingEventArgs args)
         {
+            SceneManager.Instance.UnloadAllScenes();
+            
+            FileManager.UnloadAllAssets();
+            
+            
             base.OnExiting(sender, args);
 
             Environment.Exit(0);

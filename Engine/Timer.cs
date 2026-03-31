@@ -11,6 +11,10 @@ namespace Bean
         [DebugServerVariable]
         public bool IsFinished;
 
+        public Timer() : base("Timer")
+        {
+        }
+
         public override void Start()
         {
             base.Start();

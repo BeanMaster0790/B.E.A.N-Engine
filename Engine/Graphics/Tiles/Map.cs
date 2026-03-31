@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 using Bean.Debug;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -11,103 +6,75 @@ using Newtonsoft.Json;
 
 namespace Bean.Graphics.Tiles
 {
-    public class Map : Prop
+    public class Map : Addon
     {
-        public string MapDirectory 
-        { 
-            set
-            {
-                this._mapDirectory = FileManager.TiledMapPath + value; 
-			}
+        private RawMapData _rawMapData;
 
-            get
-            {
-                return this._mapDirectory.Replace(FileManager.TiledMapPath, "");
-            }
-                
-         }
+        private Texture2D[] _textures;
 
-        private string _mapDirectory; 
+        private int _tileWidth;
+        private int _tileHeight;
 
-        public string TextureDirectory 
-        { 
-            set 
-            { 
-                GetTexturesFromDirectory(value);
-            }
-
-            get
-            {
-                return this._textureDirectory;
-            }
-        }
-
-        private string _textureDirectory;
-
-        protected RawMapData _rawMapData;
-
-        protected Texture2D[] _textures { get; set; }
-
-        protected int _tileWidth;
-        protected int _tileHeight;
-
-        private float _tileScale;
-
-        private int _numberOfTiles;
+        private float _tileScale = 1;
 
         public float FrameSpeed;
 
         private float _frameTimer;
         private int _currentFrame;
 
-        public float TileScale
+        private Rectangle[] _rectangles;
+
+        private List<Tile> _tiles = new List<Tile>();
+
+        public Map(string name, string textureDirectory, string mapPath) :  base(name)
         {
-            get
-            {
-                return this._tileScale;
-            }
-            set
-            {
-                _tileScale = value;
-            }
-        }
+            string data = File.OpenText(FileManager.TiledMapPath + mapPath).ReadToEnd();
 
-        protected Rectangle[] _rectangles;
-
-        protected List<Tile> _tiles = new List<Tile>();
-
-        public Map()
-        {
-
-        }
-
-		public override void Start()
-		{
-			base.Start();
-
-            if (this._rawMapData == null)
-            {
-                string data = File.OpenText(this._mapDirectory).ReadToEnd();
-
-                this._rawMapData = JsonConvert.DeserializeObject<RawMapData>(data);             
-            }
+            this._rawMapData = JsonConvert.DeserializeObject<RawMapData>(data);
 
 			this._tileWidth = (int)(this._rawMapData.tilewidth * this._tileScale);
 			this._tileHeight = (int)(this._rawMapData.tileheight * this._tileScale);
 
 			this._rectangles = this.GetTileRectangles();
-
-			this._numberOfTiles = this._rawMapData.width * this._rawMapData.height;
+            
+            GetTexturesFromDirectory(textureDirectory);
 
             LoadMap();
-		}
+        }
 
-		private void GetTexturesFromDirectory(string textureDirectory)
+        public Map(string name, string textureDirectory, RawMapData rawMapData) : base(name)
         {
+            this._rawMapData = rawMapData;
 
-            this._textureDirectory = textureDirectory;
+            this._tileWidth = (int)(this._rawMapData.tilewidth * this._tileScale);
+            this._tileHeight = (int)(this._rawMapData.tileheight * this._tileScale);
 
-            try
+            GetTexturesFromDirectory(textureDirectory);
+            
+            this._rectangles = this.GetTileRectangles();
+
+            LoadMap();
+        }
+
+        public Tile GetTile(float x, float y)
+        {
+            x *= this._tileWidth;
+            y *= this._tileHeight;
+            
+            return this._tiles.FirstOrDefault(T => T.MapPosition.X == x && T.MapPosition.Y == y);
+        }
+
+		private void GetTexturesFromDirectory(string textureDirectory, bool isAnimated = false)
+        {
+            if (!isAnimated)
+            {
+                Texture2D texture = FileManager.LoadFromFile<Texture2D>(textureDirectory);
+
+                this._textures = new Texture2D[1];
+
+                this._textures[0] = texture;
+            }
+            else
             {
                 int index = 1;
 
@@ -131,15 +98,10 @@ namespace Bean.Graphics.Tiles
                     }
                 }
 
-                this._textures = textures.ToArray();
-            }
-            catch
-            {
-                Texture2D texture = FileManager.LoadFromFile<Texture2D>(textureDirectory);
-
-                this._textures = new Texture2D[1];
-
-                this._textures[0] = texture;
+                if (index != 1)
+                    this._textures = textures.ToArray();
+                else
+                    throw new FileNotFoundException(textureDirectory + index);
             }
         }
 
@@ -175,7 +137,7 @@ namespace Bean.Graphics.Tiles
             return rectangles;
         }
 
-        public virtual void LoadMap()
+        private void LoadMap()
         {
             foreach (LayerData layer in this._rawMapData.layers)
             {
@@ -222,27 +184,47 @@ namespace Bean.Graphics.Tiles
             }
         }
 
-        public virtual void LoadObject(TileObject obj, LayerData layer)
+        protected virtual void LoadObject(TileObject obj, LayerData layer)
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
         }
 
-        public virtual void LoadTile(LayerData layer, int xIndex, int yIndex, int i)
+        private void LoadTile(LayerData layer, int xIndex, int yIndex, int i)
         {
-            throw new NotImplementedException();
+            if (!string.IsNullOrEmpty(layer.name))
+            {
+                Tile tile = new Tile();
+
+                tile.TextureRectangle = this._rectangles[layer.data[i] - 1];
+                
+                tile.textureMapValue = layer.data[i];
+
+                tile.MapPosition = new Vector2(xIndex * this._tileWidth, yIndex * this._tileHeight);
+
+                tile.DrawPosition = tile.MapPosition -
+                                    new Vector2(this._rawMapData.width / 2 * this._tileWidth,
+                                        this._rawMapData.height / 2 * this._tileHeight) -
+                                    new Vector2(this._tileWidth / 2, this._tileHeight / 2);
+                
+                ModifyTile(tile);
+
+                this._tiles.Add(tile);
+                
+            }
+        }
+
+        protected virtual void ModifyTile(Tile tile)
+        {
+            
         }
 
         public override void Draw(SpriteBatch spriteBatch)
         {
             foreach (Tile tile in this._tiles)
             {
-                spriteBatch.Draw(this._textures[this._currentFrame], tile.Position -
-                    new Vector2(this._rawMapData.width / 2 * this._tileWidth, this._rawMapData.height / 2 * this._tileHeight) -
-                    new Vector2(this._tileWidth / 2, this._tileHeight / 2) -
-                    base.Scene.Camera.Position, tile.TextureRectangle, Color.White, 0, Vector2.Zero, this._tileScale, SpriteEffects.None, tile.Layer);
+                spriteBatch.Draw(this._textures[this._currentFrame], tile.DrawPosition + this.Parent.PropTransform.Position -
+                    this.Parent.Scene.Camera.Position, tile.TextureRectangle, Color.White, 0, Vector2.Zero, this._tileScale, SpriteEffects.None, tile.Layer);
             }
-
-            
         }
 
         public override void Update()

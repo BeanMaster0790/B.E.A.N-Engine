@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using Bean.Debug;
 using Bean.Graphics;
 using Bean.Scenes;

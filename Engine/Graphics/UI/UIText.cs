@@ -1,4 +1,3 @@
-using System;
 using Bean.Scenes;
 using FontStashSharp;
 using Microsoft.Xna.Framework;
@@ -8,7 +7,11 @@ namespace Bean.UI;
 
 public class UIText : ScreenProp
 {
-        public string FontPath 
+    public UIText(string name) : base(name)
+    {
+    }
+
+    public string FontPath 
         {  
             get 
             { 

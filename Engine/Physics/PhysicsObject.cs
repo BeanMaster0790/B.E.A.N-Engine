@@ -1,9 +1,11 @@
 using Bean.Debug;
+using Bean.JsonVariables;
 using Microsoft.Xna.Framework;
+using Newtonsoft.Json;
 
 namespace Bean.PhysicsSystem {
 
-    public class PhysicsObject : Addon
+    public class PhysicsObject : Addon, IJsonParsable<PhysicsObject>
     {
         [DebugServerVariable]
         public Vector2 Velocity;
@@ -12,9 +14,9 @@ namespace Bean.PhysicsSystem {
 
         private bool _bypassChecks;
 
-        public PhysicsObject(bool bypassSelfChecks = false)
+        public PhysicsObject(string name,bool bypassMovmentOnlyChecks = false) :  base(name)
         {
-            this._bypassChecks = bypassSelfChecks;
+            this._bypassChecks = bypassMovmentOnlyChecks;
         }
 
         public override void Start()
@@ -33,7 +35,7 @@ namespace Bean.PhysicsSystem {
         {
             base.Update();
 
-            this.Parent.Position += Velocity * Time.Instance.TargetMultiplier;
+            this.Parent.PropTransform.Position += Velocity * Time.Instance.TargetMultiplier;
 
             if (this._collider != null && !this._bypassChecks)
                 Physics.Instance.MovingColliders.Add(this._collider);
@@ -73,6 +75,27 @@ namespace Bean.PhysicsSystem {
             {
                 collider.OnCollisionStay -= this.OnCollide;    
             }
+        }
+
+        public static PhysicsObject Parse(string json)
+        {
+            BasicBeanJson beanJson = FileManager.GetAddonFromJson<BasicBeanJson>(json);
+
+            return new PhysicsObject(beanJson.Name);
+        }
+
+        public string ExportJson()
+        {
+            BasicBeanJson json = new BasicBeanJson() { Name = this.Name };
+            
+            return JsonConvert.SerializeObject(json);
+        }
+
+        public void UpdateFromJson(string json)
+        {
+            BasicBeanJson beanJson = FileManager.GetAddonFromJson<BasicBeanJson>(json);
+            
+            this.Name = beanJson.Name;
         }
     } 
 }
