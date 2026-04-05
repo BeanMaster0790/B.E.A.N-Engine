@@ -1,0 +1,1 @@
+{"Name":"Unnamed","Addons":[{"TypeName":"Bean.Transform","JsonData":"{\"Position\":\"\\\"0, 0\\\"\",\"Rotation\":\"0.0\",\"Scale\":\"\\\"1, 1\\\"\",\"Layer\":\"0.0\",\"Name\":\"Transform\"}"},{"TypeName":"Bean.Sprite","JsonData":"{\"Colour\":\"255,255,255,255\",\"SpriteEffect\":\"0\",\"Texture\":\"Bean\",\"Name\":\"Bean\",\"Origin\":\"\\\"8, 8\\\"\"}"}]}

@@ -13,7 +13,7 @@ using Newtonsoft.Json;
 
 namespace Bean
 {
-    public class WorldProp : Prop, IJsonParsable<WorldProp>
+    public class WorldProp : Prop
     {
         public Dictionary<string, Addon> Addons { get; private set; } = new Dictionary<string, Addon>();
         
@@ -216,7 +216,13 @@ namespace Bean
         {
             public string Name { get; set; }
             
-            public Dictionary<string, string> Addons { get; set; }
+            public struct PropAddon(string typeName, string jsonData)
+            {
+                public string TypeName = typeName;
+                public string JsonData = jsonData;
+            }
+            
+            public List<PropAddon> Addons { get; set; }
         }
 
         public static WorldProp Parse(string json)
@@ -229,41 +235,27 @@ namespace Bean
             WorldPropJson propJson = (WorldPropJson)propJsonNull;
 
             WorldProp worldProp = new WorldProp(propJson.Name);
-            
-            if(propJson.Addons.ContainsKey("Transform"))
-                worldProp = new WorldProp(propJson.Name, Transform.Parse(propJson.Addons["Transform"]));
-                
 
-            foreach (KeyValuePair<string, string> jsonAddon in propJson.Addons)
+            foreach (WorldPropJson.PropAddon propAddon in propJson.Addons)
             {
-                switch (jsonAddon.Key.Replace("TYPECLONE", ""))
+                if (propAddon.TypeName == typeof(Transform).FullName)
                 {
-                    case "Transform":
-                        break;
-                    case "Sprite":
-                        worldProp.AddAddon(Sprite.Parse(jsonAddon.Value));
-                        break;
-                    case "AnimationManager":
-                        worldProp.AddAddon(AnimationManager.Parse(jsonAddon.Value));
-                        break;
-                    case "Light":
-                        worldProp.AddAddon(Light.Parse(jsonAddon.Value));
-                        break;
-                    case "YSorter":
-                        worldProp.AddAddon(YSorter.Parse(jsonAddon.Value));
-                        break;
-                    case "PlayerController":
-                        worldProp.AddAddon(PlayerController.Parse(jsonAddon.Value));
-                        break;
-                    case "Collider":
-                        worldProp.AddAddon(Collider.Parse(jsonAddon.Value));
-                        break;
-                    case "PhysicsObject":
-                        worldProp.AddAddon(PhysicsObject.Parse(jsonAddon.Value));
-                        break;
-                    default:
-                        throw new NotImplementedException($"Unknown addon {jsonAddon.Key}");
+                    Transform transform = Addon.Parse(propAddon.JsonData, typeof(Transform)) as Transform;
+                    
+                    worldProp.AddAddon(transform);
+                    worldProp.PropTransform = transform;
+                    
+                    break;
                 }
+                    
+            }
+            
+            foreach(WorldPropJson.PropAddon propAddon in propJson.Addons)
+            {
+                if (propAddon.TypeName == typeof(Transform).FullName)
+                    continue;
+                
+                worldProp.AddAddon(Addon.Parse(propAddon.JsonData, Type.GetType(propAddon.TypeName)));
             }
             
             return worldProp;
@@ -296,77 +288,85 @@ namespace Bean
 #endif
         }
 
-        public void UpdateFromJson(string json)
+        public void HotReload(string json)
         {
-            WorldPropJson? propJsonNull = JsonConvert.DeserializeObject<WorldPropJson>(json);
-
-            List<string> updatedAddons = new List<string>();
-            
-            string skippedName = "";
-
-            if (propJsonNull == null)
-                throw new ArgumentException("Invalid Json");
-            
-            WorldPropJson propJson = (WorldPropJson)propJsonNull;
-            
-            this.Name = propJson.Name;
-
-            foreach (KeyValuePair<string, string> jsonAddon in propJson.Addons)
+            Dictionary<string, Addon> changeNames = new Dictionary<string, Addon>();
+            foreach (KeyValuePair<string, Addon> addon in this.Addons)
             {
-                BasicBeanJson basicJson = JsonConvert.DeserializeObject<BasicBeanJson>(jsonAddon.Value);
+                addon.Value.InvokeRefryMethods();
 
-                if (!this.Addons.ContainsKey(basicJson.Name))
-                {
-                    Console.WriteLine($"Skipping {basicJson.Name}");
-                    
-                    skippedName =  basicJson.Name;
-                    
-                    continue;
-                }
-                
-                if (this.Addons[basicJson.Name] != null &&
-                    this.Addons[basicJson.Name] is IJsonParsable parsable)
-                {
-                    parsable.UpdateFromJson(jsonAddon.Value);
-                    updatedAddons.Add(basicJson.Name);
-                }
+                if (addon.Key != addon.Value.Name)
+                    changeNames[addon.Key] = addon.Value;
+
             }
 
-            foreach (Addon addon in Addons.Values.ToArray())
+            foreach (KeyValuePair<string, Addon> valuePair in changeNames)
             {
-                if (!updatedAddons.Contains(addon.Name) && !string.IsNullOrEmpty(skippedName))
-                {
-                    Console.WriteLine($"changing {addon.Name} to {skippedName}");
-                    
-                    string oldAddonName = addon.Name;
-                    
-                    addon.Name = skippedName;
-                    
-                    this.Addons.Add(addon.Name, addon);
-                    this.Addons.Remove(oldAddonName);
-                }
+                this.Addons.Add(valuePair.Value.Name, valuePair.Value);
+                this.Addons.Remove(valuePair.Key);
             }
+            
+            // WorldPropJson? propJsonNull = JsonConvert.DeserializeObject<WorldPropJson>(json);
+            //
+            // List<string> updatedAddons = new List<string>();
+            //
+            // string skippedName = "";
+            //
+            // if (propJsonNull == null)
+            //     throw new ArgumentException("Invalid Json");
+            //
+            // WorldPropJson propJson = (WorldPropJson)propJsonNull;
+            //
+            // this.Name = propJson.Name;
+            //
+            // foreach (WorldPropJson.PropAddon jsonAddon in propJson.Addons)
+            // {
+            //     BasicBeanJson basicJson = JsonConvert.DeserializeObject<BasicBeanJson>(jsonAddon.JsonData);
+            //
+            //     if (!this.Addons.ContainsKey(basicJson.Name))
+            //     {
+            //         Console.WriteLine($"Skipping {basicJson.Name}");
+            //         
+            //         skippedName =  basicJson.Name;
+            //         
+            //         continue;
+            //     }
+            //     
+            //     if (this.Addons[basicJson.Name] != null)
+            //     {
+            //         this.Addons[basicJson.Name].UpdateFromJson(jsonAddon.JsonData);
+            //         updatedAddons.Add(basicJson.Name);
+            //     }
+            // }
+            //
+            // foreach (Addon addon in Addons.Values.ToArray())
+            // {
+            //     if (!updatedAddons.Contains(addon.Name) && !string.IsNullOrEmpty(skippedName))
+            //     {
+            //         Console.WriteLine($"changing {addon.Name} to {skippedName}");
+            //         
+            //         string oldAddonName = addon.Name;
+            //         
+            //         addon.Name = skippedName;
+            //         
+            //         this.Addons.Add(addon.Name, addon);
+            //         this.Addons.Remove(oldAddonName);
+            //     }
+            // }
         }
 
         public string ExportJson()
         {
-            Dictionary<string, string> addons = new Dictionary<string, string>();
+            List<WorldPropJson.PropAddon> addons = new List<WorldPropJson.PropAddon>();
             
             Addon[] addonArray = this.Addons.Values.ToArray();
 
-            for (int i = 0; i < addonArray.Length; i++)
+            foreach (Addon addon in addonArray)
             {
-                if (addonArray[i] is IJsonParsable parsable)
-                {
-                    string attempedName = parsable.GetType().Name;
-
-                    while (addons.ContainsKey(attempedName))
-                    {
-                        attempedName += "TYPECLONE";
-                    }
-                    
-                    addons.Add(parsable.GetType().Name, parsable.ExportJson());
-                }
+                WorldPropJson.PropAddon propAddon =
+                    new WorldPropJson.PropAddon(addon.GetType().FullName, addon.ExportJson());
+                
+                addons.Add(propAddon);
             }
 
             WorldPropJson worldProp = new WorldPropJson()

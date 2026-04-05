@@ -30,10 +30,10 @@ namespace DemoGame
         {
             this.Settings = new GameSettings();
 
-            PlanetScene scene = new PlanetScene("PlanetScene");
+            Scene scene = new Scene("PlanetScene");
             
             //scene.Camera.EnableLighting = true;
-            scene.Camera.SetZ(scene.Camera.GetZFromHeight(2000));
+            scene.Camera.SetZ(scene.Camera.GetZFromHeight(200));
             
             scene.LightingManager.GlobalColour = new Color(0.3f, 0.3f, 0.3f);
             
@@ -42,37 +42,15 @@ namespace DemoGame
             SceneManager.Instance.LoadScene("PlanetScene");
             
             SceneManager.Instance.SetActiveScene("PlanetScene");
+
+            scene.AddToScene(FileManager.LoadWorldPropFromFile("Player"));
+            
+            //test.GetAddon<Sprite>().UpdateFromJson(test.GetAddon<Sprite>().ExportJson());
         }
 
         public override void Update()
         { 
             SceneManager.Instance.ActiveScene.Update();
-            // if (this.Settings.ResolutionScale == 0)
-            // {
-            //     switch (GraphicsManager.Instance.GetGameResolution().Y)
-            //     {
-            //         case >= 2160:
-            //             SceneManager.Instance.ActiveScene.UIScene.RenderScale = 1.5f;
-            //             break;
-            //         case >= 1440:
-            //             SceneManager.Instance.ActiveScene.UIScene.RenderScale = 1.25f;
-            //             break;
-            //         case >= 1080:
-            //             SceneManager.Instance.ActiveScene.UIScene.RenderScale = 1f;
-            //             break;
-            //         case >= 720:
-            //             SceneManager.Instance.ActiveScene.UIScene.RenderScale = 0.75f;
-            //             break;
-            //         default:
-            //             SceneManager.Instance.ActiveScene.UIScene.RenderScale = 0.5f;
-            //             break;
-            //     }
-            // }
-            // else
-            // {
-            //     SceneManager.Instance.ActiveScene.UIScene.RenderScale = this.Settings.ResolutionScale;
-            // }
-
         }
 
         public override void LateUpdate()

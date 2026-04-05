@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 
 namespace Bean.Graphics.Lighting
 {
-	public class Light : Addon, IJsonParsable<Light>
+	public class Light : Addon
 	{
 		[DebugServerVariable]
 		public float Intencity;
@@ -44,49 +44,9 @@ namespace Bean.Graphics.Lighting
         {
 	        public string Name { get; set; }
 
-	        public JsonColour Colour { get; set; }
+	        public JsonColourConverter ColourConverter { get; set; }
 	        public int Distance  { get; set; }
 	        public float Intensity  { get; set; }
-        }
-
-        public static Light Parse(string json)
-        {
-	        LightJson? lightJsonNull = JsonConvert.DeserializeObject<LightJson>(json);
-
-	        if (lightJsonNull == null)
-		        throw new ArgumentException("Invalid Json");
-	        
-	        LightJson lightJson = (LightJson)lightJsonNull;
-	        
-	        return new Light(lightJson.Name, lightJson.Intensity, lightJson.Distance,  lightJson.Colour.ToColor());
-        }
-
-        public void UpdateFromJson(string json)
-        {
-	        LightJson? lightJsonNull = JsonConvert.DeserializeObject<LightJson>(json);
-
-	        if (lightJsonNull == null)
-		        throw new ArgumentException("Invalid Json");
-	        
-	        LightJson lightJson = (LightJson)lightJsonNull;
-	        
-	        this.Name = lightJson.Name;
-	        this.Colour = lightJson.Colour.ToColor();
-	        this.Distance = lightJson.Distance;
-	        this.Intencity = lightJson.Intensity;
-        }
-
-        public string ExportJson()
-        {
-	        LightJson json = new LightJson()
-	        {
-		        Name = this.Name,
-		        Intensity = this.Intencity,
-		        Colour = JsonColour.FromColor(this.Colour),
-		        Distance = this.Distance,
-	        };
-	        
-	        return JsonConvert.SerializeObject(json);
         }
 	}
 }

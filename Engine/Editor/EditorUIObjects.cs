@@ -1,3 +1,4 @@
+using Bean.Scenes;
 using Bean.UI;
 using Microsoft.Xna.Framework;
 
@@ -83,6 +84,48 @@ public static class EditorUIObjects
           };
           
           return addonContainer;
+     }
+     
+     public static UIAlignContainer CreateAddonInputField(Type type, string key, UIAlignContainer fieldContainer, Addon selectedAddon, PropEditor scene)
+     {
+          UIAlignContainer inputContainer = new UIAlignContainer("Temp");
+
+          if (type == typeof(string))
+          {
+               EditorStringField stringField =
+                    new EditorStringField(key, selectedAddon, scene);
+               inputContainer = stringField.CreateInputContainer(fieldContainer, scene.UIScene);
+          }
+    
+          else if (type == typeof(Vector2))
+          {
+               EditorVector2FieldValue vector2Field =
+                    new EditorVector2FieldValue(key, selectedAddon, scene);
+               inputContainer = vector2Field.CreateInputContainer(fieldContainer, scene.UIScene);
+          }
+    
+          else if (type == typeof(float))
+          {
+               EditorFloatFieldValue floatField =
+                    new EditorFloatFieldValue(key, selectedAddon, scene);
+               inputContainer = floatField.CreateInputContainer(fieldContainer, scene.UIScene);
+          }
+    
+          else if (type == typeof(int))
+          {
+               EditorIntFieldValue intField =
+                    new EditorIntFieldValue(key, selectedAddon, scene);
+               inputContainer = intField.CreateInputContainer(fieldContainer, scene.UIScene);
+          }
+    
+          else if (type == typeof(Color))
+          {
+               EditorColourFieldValue colourField =
+                    new EditorColourFieldValue(key, selectedAddon, scene);
+               inputContainer = colourField.CreateInputContainer(fieldContainer, scene.UIScene);
+          }
+
+          return inputContainer;
      }
 #endif
 }

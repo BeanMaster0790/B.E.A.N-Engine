@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 
 namespace Bean.PhysicsSystem
 {
-	public class Collider : Addon, IJsonParsable<Collider>
+	public class Collider : Addon
 	{
 		public List<Collider> CheckedColliders;
 
@@ -17,7 +17,7 @@ namespace Bean.PhysicsSystem
 
 		private PhysicsObject _physicsObject;
 
-		[DebugServerVariable]
+		[Tinned("Height", true, 2)]
 		public int Height { get; set; }
 
 		[DebugServerVariable]
@@ -35,14 +35,15 @@ namespace Bean.PhysicsSystem
 
 		private Sprite _sprite;
 
-		[DebugServerVariable]
+		[Tinned("Offset")]
 		public Vector2 PositionOffset;
 
 		public Rectangle ColliderRectangle;
 
 		public bool DoesParentHavePhysicsObject;
 
-		[DebugServerVariable]
+		
+		[Tinned("Width", true, 1)]
 		public int Width { get; set; }
 
 		internal List<CollisonGridSquare> GridSquares;
@@ -248,61 +249,6 @@ namespace Bean.PhysicsSystem
 			
 			this.ColliderRectangle.Location -= new Point((int)(this.ColliderRectangle.Width / 2f), (int)(this.ColliderRectangle.Height / 2f));
 			this.ColliderRectangle.Location += new Point((int)this.PositionOffset.X, (int)this.PositionOffset.Y);
-		}
-
-		public struct ColliderJson : IBeanJson
-		{
-			public string Name { get; set; }
-
-			public int Width { get; set; }
-			public int Height { get; set; }
-			
-			public Vector2 PositionOffset { get; set; }
-		}
-
-		public static Collider Parse(string json)
-		{
-			ColliderJson? jsonNull = JsonConvert.DeserializeObject<ColliderJson>(json);
-
-			if (jsonNull == null)
-				throw new ArgumentException("Invalid Json");
-			
-			ColliderJson colliderJson = (ColliderJson)jsonNull;
-			
-			Collider collider = new Collider(colliderJson.Name, colliderJson.Width, colliderJson.Height)
-			{
-				PositionOffset =  colliderJson.PositionOffset
-			};
-			
-			return collider;
-		}
-
-		public void UpdateFromJson(string json)
-		{
-			ColliderJson? jsonNull = JsonConvert.DeserializeObject<ColliderJson>(json);
-
-			if (jsonNull == null)
-				throw new ArgumentException("Invalid Json");
-			
-			ColliderJson colliderJson = (ColliderJson)jsonNull;
-			
-			this.Name = colliderJson.Name;
-			this.Width = colliderJson.Width;
-			this.Height = colliderJson.Height;
-			this.PositionOffset = colliderJson.PositionOffset;
-		}
-
-		public string ExportJson()
-		{
-			ColliderJson  colliderJson = new ColliderJson()
-			{
-				Name = this.Name,
-				Width = this.Width,
-				Height = this.Height,
-				PositionOffset =  this.PositionOffset,
-			};
-			
-			return JsonConvert.SerializeObject(colliderJson);
 		}
 	}
 

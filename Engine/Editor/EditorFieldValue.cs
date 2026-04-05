@@ -10,16 +10,15 @@ namespace Bean.Editor;
 
 public abstract class EditorFieldValue
 {
-    public string FieldName { get; set; }
-    public IBeanJson AddonJson { get; set; }
+    public string FieldKey { get; set; }
+    
     public Addon AttachedAddon { get; set; }
     
     public PropEditor PropEditor { get; set; }
 
-    public EditorFieldValue(string fieldName, IBeanJson addonJson, Addon attachedAddon, PropEditor attachedPropEditor)
+    public EditorFieldValue(string fieldKey, Addon attachedAddon, PropEditor attachedPropEditor)
     {
-        FieldName = fieldName;
-        AddonJson = addonJson;
+        FieldKey = fieldKey;
         AttachedAddon = attachedAddon;
         
         PropEditor = attachedPropEditor;
@@ -28,7 +27,7 @@ public abstract class EditorFieldValue
 
 public abstract class EditorFieldValue<TValue> :  EditorFieldValue
 {
-    public EditorFieldValue(string fieldName, IBeanJson addonJson, Addon attachedAddon, PropEditor editor) : base(fieldName, addonJson, attachedAddon, editor)
+    public EditorFieldValue(string fieldKey, Addon attachedAddon, PropEditor editor) : base(fieldKey, attachedAddon, editor)
     {
     }
     
@@ -37,30 +36,36 @@ public abstract class EditorFieldValue<TValue> :  EditorFieldValue
     
     public TValue GetValueFromFieldName()
     {
-        PropertyInfo propertyInfo = this.AddonJson.GetType().GetProperty(FieldName);
+        Console.WriteLine(FieldKey);
         
-        if(propertyInfo != null)
-            return (TValue)propertyInfo.GetValue(AddonJson);
+        if(Addon.GetPropertiesWithParseAtt(this.AttachedAddon.GetType()).Any(f => f.GetCustomAttribute<Tinned>().Key == this.FieldKey))
+            return (TValue)Addon.GetPropertiesWithParseAtt(this.AttachedAddon.GetType()).First(f => f.GetCustomAttribute<Tinned>().Key == this.FieldKey).GetValue(this.AttachedAddon);
         
-        FieldInfo fieldInfo = this.AddonJson.GetType().GetField(FieldName);
-        
-        if (fieldInfo != null)
-            return (TValue)fieldInfo.GetValue(AddonJson);
-
+        if(Addon.GetFieldsWithParseAtt(this.AttachedAddon.GetType()).Any(f => f.GetCustomAttribute<Tinned>().Key == this.FieldKey))
+            return (TValue)Addon.GetFieldsWithParseAtt(this.AttachedAddon.GetType()).First(f => f.GetCustomAttribute<Tinned>().Key == this.FieldKey).GetValue(this.AttachedAddon);
+    
         return default(TValue);
     }
-
+    
     public void SetValueFromFieldName(TValue value)
     {
-        PropertyInfo propertyInfo = this.AddonJson.GetType().GetProperty(FieldName);
-
-        if (propertyInfo != null)
+        if (Addon.GetPropertiesWithParseAtt(this.AttachedAddon.GetType())
+            .Any(f => f.GetCustomAttribute<Tinned>().Key == this.FieldKey))
         {
-            propertyInfo.SetValue(AddonJson, value);
+             Addon.GetPropertiesWithParseAtt(this.AttachedAddon.GetType()).First(f => f.GetCustomAttribute<Tinned>().Key == this.FieldKey).SetValue(this.AttachedAddon, value);
+             PropEditor.UpdateProp();
+             return;
+        }
+
+        if (Addon.GetFieldsWithParseAtt(this.AttachedAddon.GetType())
+            .Any(f => f.GetCustomAttribute<Tinned>().Key == this.FieldKey))
+        {
+            
+            Addon.GetFieldsWithParseAtt(this.AttachedAddon.GetType()).First(f => f.GetCustomAttribute<Tinned>().Key == this.FieldKey).SetValue(this.AttachedAddon, value);
             PropEditor.UpdateProp();
             return;
         }
-
+    
         throw new Exception("How did it even make it this far?");
     }
 
@@ -70,7 +75,7 @@ public class EditorStringField : EditorFieldValue<string>
 {
     private UIInputText _inputText;
     
-    public EditorStringField(string fieldName, IBeanJson addonJson, Addon attachedAddon, PropEditor editor) : base(fieldName, addonJson, attachedAddon, editor)
+    public EditorStringField(string fieldKey, Addon attachedAddon, PropEditor editor) : base(fieldKey, attachedAddon, editor)
     {
     }
 
@@ -78,7 +83,7 @@ public class EditorStringField : EditorFieldValue<string>
     {
         fieldContainer.Height = 65;
         
-        UIAlignContainer fieldInputContainer = new UIAlignContainer($"{this.FieldName}-Input")
+        UIAlignContainer fieldInputContainer = new UIAlignContainer($"{this.FieldKey}-Input")
         {
             Width = fieldContainer.Width - 5,
             Height = 25,
@@ -87,7 +92,7 @@ public class EditorStringField : EditorFieldValue<string>
             Parent = fieldContainer,
         };
 
-        this._inputText = new UIInputText($"{this.FieldName}-InputText")
+        this._inputText = new UIInputText($"{this.FieldKey}-InputText")
         {
             Width = 20,
             Height = 25,
@@ -122,7 +127,7 @@ public class EditorVector2FieldValue : EditorFieldValue<Vector2>
     UIInputText _inputTextX;
     UIInputText _inputTextY;
     
-    public EditorVector2FieldValue(string fieldName, IBeanJson addonJson, Addon attachedAddon, PropEditor editor) : base(fieldName, addonJson, attachedAddon, editor)
+    public EditorVector2FieldValue(string fieldKey, Addon attachedAddon, PropEditor editor) : base(fieldKey, attachedAddon, editor)
     {
     }
 
@@ -131,7 +136,7 @@ public class EditorVector2FieldValue : EditorFieldValue<Vector2>
     {
         fieldContainer.Height = 65;
         
-        UIAlignContainer fieldInputContainer = new UIAlignContainer($"{this.FieldName}-Input")
+        UIAlignContainer fieldInputContainer = new UIAlignContainer($"{this.FieldKey}-Input")
         {
             Width = fieldContainer.Width - 5,
             Height = 25,
@@ -141,7 +146,7 @@ public class EditorVector2FieldValue : EditorFieldValue<Vector2>
             Spacing = 5
         };
 
-        UIAlignContainer XInputContainer = new UIAlignContainer($"{this.FieldName}-XInputContainer")
+        UIAlignContainer XInputContainer = new UIAlignContainer($"{this.FieldKey}-XInputContainer")
         {
             Width = fieldInputContainer.Width / 2 - 5,
             Height = 25,
@@ -149,7 +154,7 @@ public class EditorVector2FieldValue : EditorFieldValue<Vector2>
             Parent = fieldInputContainer,
         };
         
-        this._inputTextX = new UIInputText($"{this.FieldName}-XInputText")
+        this._inputTextX = new UIInputText($"{this.FieldKey}-XInputText")
         {
             Width = 20,
             Height = 25,
@@ -166,7 +171,7 @@ public class EditorVector2FieldValue : EditorFieldValue<Vector2>
             SetValueFromFieldName(GetValue());
         };
         
-        UIAlignContainer YInputContainer = new UIAlignContainer($"{this.FieldName}-YInputContainer")
+        UIAlignContainer YInputContainer = new UIAlignContainer($"{this.FieldKey}-YInputContainer")
         {
             Width = fieldInputContainer.Width / 2 - 5,
             Height = 25,
@@ -174,7 +179,7 @@ public class EditorVector2FieldValue : EditorFieldValue<Vector2>
             Parent =  fieldInputContainer,
         };
         
-        this._inputTextY = new UIInputText($"{this.FieldName}-XInputText")
+        this._inputTextY = new UIInputText($"{this.FieldKey}-XInputText")
         {
             Width = 20,
             Height = 25,
@@ -226,14 +231,14 @@ public class EditorVector2FieldValue : EditorFieldValue<Vector2>
     }
 }
 
-public class EditorColourFieldValue : EditorFieldValue<JsonColour>
+public class EditorColourFieldValue : EditorFieldValue<Color>
 {
     UIInputText _inputTextR;
     UIInputText _inputTextG;
     UIInputText _inputTextB;
     UIInputText _inputTextA;
     
-    public EditorColourFieldValue(string fieldName, IBeanJson addonJson, Addon attachedAddon, PropEditor editor) : base(fieldName, addonJson, attachedAddon, editor)
+    public EditorColourFieldValue(string fieldKey, Addon attachedAddon, PropEditor editor) : base(fieldKey, attachedAddon, editor)
     {
     }
 
@@ -242,7 +247,7 @@ public class EditorColourFieldValue : EditorFieldValue<JsonColour>
     {
         fieldContainer.Height = 65;
         
-        UIAlignContainer fieldInputContainer = new UIAlignContainer($"{this.FieldName}-Input")
+        UIAlignContainer fieldInputContainer = new UIAlignContainer($"{this.FieldKey}-Input")
         {
             Width = fieldContainer.Width - 5,
             Height = 25,
@@ -252,7 +257,7 @@ public class EditorColourFieldValue : EditorFieldValue<JsonColour>
             Spacing = 2
         };
 
-        UIAlignContainer RInputContainer = new UIAlignContainer($"{this.FieldName}-RInputContainer")
+        UIAlignContainer RInputContainer = new UIAlignContainer($"{this.FieldKey}-RInputContainer")
         {
             Width = fieldInputContainer.Width / 4 - 2,
             Height = 25,
@@ -260,7 +265,7 @@ public class EditorColourFieldValue : EditorFieldValue<JsonColour>
             Parent = fieldInputContainer,
         };
         
-        this._inputTextR = new UIInputText($"{this.FieldName}-RInputText")
+        this._inputTextR = new UIInputText($"{this.FieldKey}-RInputText")
         {
             Width = 20,
             Height = 25,
@@ -277,7 +282,7 @@ public class EditorColourFieldValue : EditorFieldValue<JsonColour>
             SetValueFromFieldName(GetValue());
         };
         
-        UIAlignContainer GInputContainer = new UIAlignContainer($"{this.FieldName}-GInputContainer")
+        UIAlignContainer GInputContainer = new UIAlignContainer($"{this.FieldKey}-GInputContainer")
         {
             Width = fieldInputContainer.Width / 4 - 2,
             Height = 25,
@@ -285,7 +290,7 @@ public class EditorColourFieldValue : EditorFieldValue<JsonColour>
             Parent =  fieldInputContainer,
         };
         
-        this._inputTextG = new UIInputText($"{this.FieldName}-GInputText")
+        this._inputTextG = new UIInputText($"{this.FieldKey}-GInputText")
         {
             Width = 20,
             Height = 25,
@@ -302,7 +307,7 @@ public class EditorColourFieldValue : EditorFieldValue<JsonColour>
             SetValueFromFieldName(GetValue());
         };
         
-        UIAlignContainer BInputContainer = new UIAlignContainer($"{this.FieldName}-BInputContainer")
+        UIAlignContainer BInputContainer = new UIAlignContainer($"{this.FieldKey}-BInputContainer")
         {
             Width = fieldInputContainer.Width / 4 - 2,
             Height = 25,
@@ -310,7 +315,7 @@ public class EditorColourFieldValue : EditorFieldValue<JsonColour>
             Parent =  fieldInputContainer,
         };
         
-        this._inputTextB = new UIInputText($"{this.FieldName}-BInputText")
+        this._inputTextB = new UIInputText($"{this.FieldKey}-BInputText")
         {
             Width = 20,
             Height = 25,
@@ -327,7 +332,7 @@ public class EditorColourFieldValue : EditorFieldValue<JsonColour>
             SetValueFromFieldName(GetValue());
         };
         
-        UIAlignContainer AInputContainer = new UIAlignContainer($"{this.FieldName}-AInputContainer")
+        UIAlignContainer AInputContainer = new UIAlignContainer($"{this.FieldKey}-AInputContainer")
         {
             Width = fieldInputContainer.Width / 4 - 2,
             Height = 25,
@@ -335,7 +340,7 @@ public class EditorColourFieldValue : EditorFieldValue<JsonColour>
             Parent =  fieldInputContainer,
         };
         
-        this._inputTextA = new UIInputText($"{this.FieldName}-AInputText")
+        this._inputTextA = new UIInputText($"{this.FieldKey}-AInputText")
         {
             Width = 20,
             Height = 25,
@@ -364,7 +369,7 @@ public class EditorColourFieldValue : EditorFieldValue<JsonColour>
         return fieldInputContainer;
     }
 
-    public override JsonColour GetValue()
+    public override Color GetValue()
     {
         int r;
         int g;
@@ -407,7 +412,7 @@ public class EditorColourFieldValue : EditorFieldValue<JsonColour>
             a = 0;
         }
         
-        return new JsonColour{R = r, G = g, B = b, A = a};
+        return new Color(r,g,b,a);
     }
 }
 
@@ -415,7 +420,7 @@ class EditorIntFieldValue : EditorFieldValue<int>
 {
     private UIInputText _inputText;
     
-    public EditorIntFieldValue(string fieldName, IBeanJson addonJson, Addon attachedAddon, PropEditor editor) : base(fieldName, addonJson, attachedAddon, editor)
+    public EditorIntFieldValue(string fieldKey, Addon attachedAddon, PropEditor editor) : base(fieldKey, attachedAddon, editor)
     {
     }
 
@@ -423,7 +428,7 @@ class EditorIntFieldValue : EditorFieldValue<int>
     {
         fieldContainer.Height = 65;
         
-        UIAlignContainer fieldInputContainer = new UIAlignContainer($"{this.FieldName}-Input")
+        UIAlignContainer fieldInputContainer = new UIAlignContainer($"{this.FieldKey}-Input")
         {
             Width = fieldContainer.Width - 5,
             Height = 25,
@@ -432,7 +437,7 @@ class EditorIntFieldValue : EditorFieldValue<int>
             Parent = fieldContainer,
         };
 
-        this._inputText = new UIInputText($"{this.FieldName}-InputText")
+        this._inputText = new UIInputText($"{this.FieldKey}-InputText")
         {
             Width = 20,
             Height = 25,
@@ -471,7 +476,7 @@ class EditorFloatFieldValue : EditorFieldValue<float>
 {
     private UIInputText _inputText;
     
-    public EditorFloatFieldValue(string fieldName, IBeanJson addonJson, Addon attachedAddon, PropEditor editor) : base(fieldName, addonJson, attachedAddon, editor)
+    public EditorFloatFieldValue(string fieldKey, Addon attachedAddon, PropEditor editor) : base(fieldKey, attachedAddon, editor)
     {
     }
 
@@ -479,7 +484,7 @@ class EditorFloatFieldValue : EditorFieldValue<float>
     {
         fieldContainer.Height = 65;
         
-        UIAlignContainer fieldInputContainer = new UIAlignContainer($"{this.FieldName}-Input")
+        UIAlignContainer fieldInputContainer = new UIAlignContainer($"{this.FieldKey}-Input")
         {
             Width = fieldContainer.Width - 5,
             Height = 25,
@@ -488,7 +493,7 @@ class EditorFloatFieldValue : EditorFieldValue<float>
             Parent = fieldContainer,
         };
 
-        this._inputText = new UIInputText($"{this.FieldName}-InputText")
+        this._inputText = new UIInputText($"{this.FieldKey}-InputText")
         {
             Width = 20,
             Height = 25,

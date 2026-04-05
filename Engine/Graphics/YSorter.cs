@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace Bean.Graphics
 {
-    public class YSorter : Addon, IJsonParsable<YSorter>
+    public class YSorter : Addon
     {
 
         private float _originalLayer;
@@ -46,40 +46,6 @@ namespace Bean.Graphics
 
             if (this.Parent.PropTransform.Layer < 0.005f)
                 this.Parent.PropTransform.Layer = 0.005f;
-        }
-
-        public static YSorter Parse(string json)
-        {
-            BasicBeanJson? jsonNull = JsonConvert.DeserializeObject<BasicBeanJson>(json);
-            
-            if(jsonNull == null)
-                throw new ArgumentException("Invalid JSON");
-            
-            BasicBeanJson jsonObj = (BasicBeanJson)jsonNull;
-            
-            return new YSorter(jsonObj.Name);
-        }
-
-        public void UpdateFromJson(string json)
-        {
-            BasicBeanJson? jsonNull = JsonConvert.DeserializeObject<BasicBeanJson>(json);
-            
-            if(jsonNull == null)
-                throw new ArgumentException("Invalid JSON");
-            
-            BasicBeanJson jsonObj = (BasicBeanJson)jsonNull;
-            
-            this.Name = jsonObj.Name;
-        }
-
-        public string ExportJson()
-        {
-            BasicBeanJson json = new BasicBeanJson()
-            {
-                Name = this.Name,
-            };
-            
-            return JsonConvert.SerializeObject(json);
         }
     }
 }

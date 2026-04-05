@@ -1,4 +1,6 @@
-﻿using Microsoft.Xna.Framework;
+﻿using System.Reflection;
+using System.Runtime.CompilerServices;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Newtonsoft.Json;
 using Bean.Graphics.Animation;
@@ -8,7 +10,7 @@ using Bean.JsonVariables;
 namespace Bean.Graphics.Animations
 {
     [RequiresAddon(typeof(Sprite))]
-    public class AnimationManager : Addon, IJsonParsable<AnimationManager>
+    public class AnimationManager : Addon
     {
         public Dictionary<string, Animation> Animations;
 
@@ -22,6 +24,8 @@ namespace Bean.Graphics.Animations
         private float _timer;
 
         private string _animationsDirectory;
+        
+        [Tinned("AnimationPath", true, 1)] 
         private string _texturePath;
 
         private Sprite _parentSprite;
@@ -36,8 +40,15 @@ namespace Bean.Graphics.Animations
             this._texturePath = SheetTexturePath;
         }
 
+        [Refry("AnimationPath")]
         public void ChangeTexture(string SheetTexturePath)
         {
+            if (_parentSprite == null)
+            {
+                this._constructorPath = SheetTexturePath;
+                return;
+            }
+            
             this._parentSprite.ChangeTexture(SheetTexturePath);
             this._texturePath =  SheetTexturePath;
 
@@ -195,18 +206,6 @@ namespace Bean.Graphics.Animations
             public string AnimationPath { get; set; }
         }
 
-        public static AnimationManager Parse(string json)
-        {
-            AnimationManagerJson? animationManagerJsonNull = JsonConvert.DeserializeObject<AnimationManagerJson>(json);
-
-            if (animationManagerJsonNull == null)
-                throw new ArgumentException("AnimationManagerJson Is Null");
-            
-            AnimationManagerJson animationsJson = (AnimationManagerJson)animationManagerJsonNull;
-
-            return new AnimationManager(animationsJson.Name, animationsJson.AnimationPath);
-        }
-
         public void UpdateFromJson(string json)
         {
             AnimationManagerJson? animationManagerJsonNull = JsonConvert.DeserializeObject<AnimationManagerJson>(json);
@@ -218,17 +217,6 @@ namespace Bean.Graphics.Animations
             
             this.Name = animationsJson.Name;
             ChangeTexture(animationsJson.AnimationPath);
-        }
-
-        public string ExportJson()
-        {
-            AnimationManagerJson json = new AnimationManagerJson()
-            {
-                Name = this.Name,
-                AnimationPath = this._texturePath,
-            };
-            
-            return JsonConvert.SerializeObject(json);
         }
     }
 

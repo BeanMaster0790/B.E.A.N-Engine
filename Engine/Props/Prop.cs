@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework;
 using Newtonsoft.Json;
 using System.Data.Common;
 using System.Reflection.Metadata;
+using Bean.JsonVariables;
 
 namespace Bean
 {
@@ -13,7 +14,7 @@ namespace Bean
     {
         public string PropID { get; protected set; }
 
-        public string Name { get; set; }
+        [Tinned("Name", true, 0)] public string Name;
 
         public virtual bool IsVisable { get; set; } = true;
         public virtual bool IsActive { get; set; } = true;

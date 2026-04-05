@@ -7,17 +7,21 @@ using Newtonsoft.Json;
 
 namespace Bean
 {
-    public class Sprite : Addon, IJsonParsable<Sprite>
+    public class Sprite : Addon
     {
-        
+        [Tinned("Colour", customParseType: typeof(JsonColourConverter))]
         public Color Colour = Color.White;
 
+        [Tinned("Origin")]
         public Vector2 Origin { get; private set; }
         
+        [Tinned("SpriteEffect")]
         private SpriteEffects _spriteEffect;
 
         private Texture2D _texture;
-        public string _texturePath;
+        
+        [Tinned("Texture", true, 1)]
+        public string TexturePath;
         
         private Rectangle? _sourceRect;
 
@@ -36,17 +40,14 @@ namespace Bean
             ChangeSpriteEffect(SpriteEffects.None);
         }
 
+        [Refry("Texture")]
         public void ChangeTexture(string texturePath)
         {
-            if (string.IsNullOrEmpty(texturePath))
-            {
-                this._texture = null;
-                return;
-            }
+            Console.WriteLine("ChangingTexture");
             
             this._texture = FileManager.LoadFromFile<Texture2D>(texturePath);
             _ownTexture = false;
-            this._texturePath =  texturePath;
+            this.TexturePath =  texturePath;
         }
 
         public void ChangeTexture(Texture2D texture)
@@ -54,7 +55,7 @@ namespace Bean
             this._texture = texture;
             _ownTexture = true;
         }
-
+        
         public void ChangeOrigin(Vector2 origin)
         {
             this.Origin = origin;
@@ -97,83 +98,15 @@ namespace Bean
         {
             base.LateUpdate();
             
+            if(_texture == null)
+                return;
+            
             if(this._sourceRect == null)
                 this.SpriteRectangle = new Rectangle((int)this.Parent.PropTransform.Position.X,  (int)this.Parent.PropTransform.Position.Y, 
                     (int)(this._texture.Width * this.Parent.PropTransform.Scale.X), (int)(this._texture.Height * this.Parent.PropTransform.Scale.Y));
             else
                 this.SpriteRectangle = new Rectangle((int)this.Parent.PropTransform.Position.X,  (int)this.Parent.PropTransform.Position.Y, 
                     (int)(this._sourceRect.Value.Width * this.Parent.PropTransform.Scale.X), (int)(this._sourceRect.Value.Height * this.Parent.PropTransform.Scale.Y));
-        }
-        
-        public struct SpriteJson : IBeanJson
-        {
-            public string Name { get; set; }
-
-            public JsonColour Colour { get; set; }
-            public Vector2  Origin { get; set; }
-            
-            public string TexturePath { get; set; }
-            public SpriteEffects SpriteEffect { get; set; }
-        }
-
-        public static Sprite Parse(string json)
-        {
-            SpriteJson? spriteJsonNull = JsonConvert.DeserializeObject<SpriteJson>(json);
-            
-            if(spriteJsonNull == null)
-                throw new  ArgumentException("JSON string is null");
-
-            SpriteJson spriteJson = (SpriteJson)spriteJsonNull;
-
-            Sprite returnSprite = new Sprite(spriteJson.Name, spriteJson.TexturePath)
-            {
-                Colour =  spriteJson.Colour.ToColor(),
-            };
-            
-            if(returnSprite.Origin !=  Vector2.Zero)
-                returnSprite.ChangeOrigin(spriteJson.Origin);
-            
-            returnSprite.ChangeSpriteEffect(spriteJson.SpriteEffect);
-
-            return returnSprite;
-        }
-
-        public void UpdateFromJson(string json)
-        {
-            SpriteJson? spriteJsonNull = JsonConvert.DeserializeObject<SpriteJson>(json);
-            
-            if(spriteJsonNull == null)
-                throw new  ArgumentException("JSON string is null");
-
-            SpriteJson spriteJson = (SpriteJson)spriteJsonNull;
-            
-            this.Name = spriteJson.Name;
-            this.Colour = spriteJson.Colour.ToColor();
-            
-            this.ChangeTexture(spriteJson.TexturePath);
-            this.ChangeSourceRect(null);
-            this.ChangeOrigin(spriteJson.Origin);
-            this.ChangeSpriteEffect(spriteJson.SpriteEffect);
-        }
-
-
-        public string ExportJson()
-        {
-            SpriteJson spriteJson = new SpriteJson()
-            {
-                Name = this.Name,
-                Colour = JsonColour.FromColor(this.Colour),
-                Origin = this.Origin,
-                TexturePath = this._texturePath,
-                SpriteEffect =  this._spriteEffect,
-            };
-            
-            spriteJson.Name = this.Name;
-            spriteJson.Colour = JsonColour.FromColor(this.Colour);
-            spriteJson.TexturePath = this._texturePath;
-            spriteJson.SpriteEffect = this._spriteEffect;
-            
-            return JsonConvert.SerializeObject(spriteJson);
         }
     }
 }

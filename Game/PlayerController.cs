@@ -11,8 +11,9 @@ using Newtonsoft.Json;
 namespace DemoGame;
 
 [RequiresAddon(typeof(AnimationManager))]
-public class PlayerController : Addon, IJsonParsable<PlayerController>
+public class PlayerController : Addon
 {
+    [Tinned("PlayerSpeed")]
     private float _playerSpeed = 45;
     
     public PlayerController(string name) : base(name)
@@ -62,37 +63,5 @@ public class PlayerController : Addon, IJsonParsable<PlayerController>
         this.Parent.Scene.Camera.Position = Vector2.Lerp(this.Parent.Scene.Camera.Position, this.Parent.PropTransform.Position, 0.08f);
 
 
-    }
-    
-    public struct PlayerControllerJson : IBeanJson
-    {
-        public string Name { get; set; }
-        
-        public float Speed { get; set; }
-    }
-
-    public static PlayerController Parse(string json)
-    {
-        PlayerControllerJson controllerJson = FileManager.GetAddonFromJson<PlayerControllerJson>(json);
-
-        return new PlayerController(controllerJson.Name) {_playerSpeed =  controllerJson.Speed};
-    }
-
-    public string ExportJson()
-    {
-        PlayerControllerJson controllerJson = new PlayerControllerJson()
-        {
-            Name = this.Name, 
-            Speed = this._playerSpeed
-        };
-        
-        return JsonConvert.SerializeObject(controllerJson);
-    }
-
-    public void UpdateFromJson(string json)
-    {
-        PlayerControllerJson controllerJson = JsonConvert.DeserializeObject<PlayerControllerJson>(json);
-        this.Name = controllerJson.Name;
-        this._playerSpeed = controllerJson.Speed;
     }
 }

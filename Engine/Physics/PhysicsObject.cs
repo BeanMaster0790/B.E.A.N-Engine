@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace Bean.PhysicsSystem {
 
-    public class PhysicsObject : Addon, IJsonParsable<PhysicsObject>
+    public class PhysicsObject : Addon
     {
         [DebugServerVariable]
         public Vector2 Velocity;
@@ -75,27 +75,6 @@ namespace Bean.PhysicsSystem {
             {
                 collider.OnCollisionStay -= this.OnCollide;    
             }
-        }
-
-        public static PhysicsObject Parse(string json)
-        {
-            BasicBeanJson beanJson = FileManager.GetAddonFromJson<BasicBeanJson>(json);
-
-            return new PhysicsObject(beanJson.Name);
-        }
-
-        public string ExportJson()
-        {
-            BasicBeanJson json = new BasicBeanJson() { Name = this.Name };
-            
-            return JsonConvert.SerializeObject(json);
-        }
-
-        public void UpdateFromJson(string json)
-        {
-            BasicBeanJson beanJson = FileManager.GetAddonFromJson<BasicBeanJson>(json);
-            
-            this.Name = beanJson.Name;
         }
     } 
 }

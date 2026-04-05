@@ -22,10 +22,6 @@ public class PropEditor : Scene
     public WorldProp LoadedProp;
 
     public Addon SelectedAddon;
-    public IBeanJson SelectedJson;
-
-    public Addon[] LoadedAddons;
-    public IBeanJson[] LoadedAddonsJson;
 
     public string CurrentFile;
 
@@ -34,18 +30,6 @@ public class PropEditor : Scene
     public PropEditor(string name) : base(name)
     {
     }
-
-    private Dictionary<Type, Type> _typeMap = new Dictionary<Type, Type>()
-    {
-        { typeof(Transform), typeof(Transform.TransformJson) },
-        { typeof(Sprite), typeof(Sprite.SpriteJson) },
-        { typeof(Collider), typeof(Collider.ColliderJson) },
-        { typeof(Light), typeof(Light.LightJson) },
-        { typeof(AnimationManager), typeof(AnimationManager.AnimationManagerJson) },
-        { typeof(YSorter), typeof(BasicBeanJson) },
-        { typeof(PhysicsObject), typeof(BasicBeanJson) },
-        { typeof(PlayerController), typeof(PlayerController.PlayerControllerJson) },
-    };
 
     public override void LoadScene(object caller = null)
     {
@@ -81,92 +65,70 @@ public class PropEditor : Scene
         };
         
         UIScene.AddUIProp(EditorUIObjects.CreateFakePaddingBox(rightSideBar));
-
-        if (SelectedAddon is IJsonParsable parsable)
+    
+        int i = 0;
+        foreach (Addon loadedAddon in this.LoadedProp.Addons.Values)
         {
-            PropertyInfo[] jsonProperties;
-            FieldInfo[] jsonFields;
-
-            int i = 0;
-            foreach (Addon loadedAddon in LoadedAddons)
-            {
-                Console.WriteLine(loadedAddon.Name);
-                
-                if (SelectedAddon.Name == loadedAddon.Name) break;
-
-                i++;
-            }
-
-            SelectedJson = LoadedAddonsJson[i];
-
-            jsonProperties = SelectedJson.GetType().GetProperties();
-            jsonFields = SelectedJson.GetType().GetFields();
-
-            foreach (PropertyInfo propertyInfo in jsonProperties)
-            {
-                UIAlignContainer fieldContainer = EditorUIObjects.CreateListOption(rightSideBar, propertyInfo.Name, 
-                    AlignDirection.Vertical, HorizontalAlign.Center, VerticalAlign.Top, EditorUIObjects.BaseColour,
-                    out UIText fieldName);
-                
-                UIAlignContainer inputContainer = new UIAlignContainer("Temp");
-
-                if (propertyInfo.PropertyType == typeof(string))
-                {
-                    EditorStringField stringField =
-                        new EditorStringField(propertyInfo.Name, SelectedJson, this.SelectedAddon, this);
-                    inputContainer = stringField.CreateInputContainer(fieldContainer, this.UIScene);
-                }
-
-                else if (propertyInfo.PropertyType == typeof(Vector2))
-                {
-                    EditorVector2FieldValue vector2Field =
-                        new EditorVector2FieldValue(propertyInfo.Name, SelectedJson, this.SelectedAddon, this);
-                    inputContainer = vector2Field.CreateInputContainer(fieldContainer, this.UIScene);
-                }
-
-                else if (propertyInfo.PropertyType == typeof(float))
-                {
-                    EditorFloatFieldValue floatField =
-                        new EditorFloatFieldValue(propertyInfo.Name, SelectedJson, this.SelectedAddon, this);
-                    inputContainer = floatField.CreateInputContainer(fieldContainer, this.UIScene);
-                }
-
-                else if (propertyInfo.PropertyType == typeof(int))
-                {
-                    EditorIntFieldValue intField =
-                        new EditorIntFieldValue(propertyInfo.Name, SelectedJson, this.SelectedAddon, this);
-                    inputContainer = intField.CreateInputContainer(fieldContainer, this.UIScene);
-                }
-
-                else if (propertyInfo.PropertyType == typeof(JsonColour))
-                {
-                    EditorColourFieldValue colourField =
-                        new EditorColourFieldValue(propertyInfo.Name, SelectedJson, this.SelectedAddon, this);
-                    inputContainer = colourField.CreateInputContainer(fieldContainer, this.UIScene);
-                }
-
-                UIScene.AddUIProp(fieldContainer);
-                UIScene.AddUIProp(fieldName);
-                UIScene.AddUIProp(inputContainer);
-            }
+            Console.WriteLine(loadedAddon.Name);
             
-            UIAlignContainer deleteAddonContainer = EditorUIObjects.CreateListOption(rightSideBar, "Delete Addon",
-                alignDirection: AlignDirection.Vertical, HorizontalAlign.Center, VerticalAlign.Top, EditorUIObjects.ButtonColour,
-                out UIText deleteAddonText);
-
-            deleteAddonContainer.OnLeftClick += (sender, args) => DeleteSelectedAddon();
-            
-            UIScene.AddUIProp(deleteAddonContainer);
-            UIScene.AddUIProp(deleteAddonText);
-
-            foreach (FieldInfo fieldInfo in jsonFields)
-            {
-                DebugServer.LogWarning($"Fields are not supported in Bean json objects! {fieldInfo.Name}", this);
-            }
+            if (SelectedAddon.Name == loadedAddon.Name) break;
+    
+            i++;
         }
+        
+    
+        IEnumerable<PropertyInfo> addonProperties = Addon.GetPropertiesWithParseAtt(SelectedAddon.GetType());
+        IEnumerable<FieldInfo> addonFields = Addon.GetFieldsWithParseAtt(SelectedAddon.GetType()).ToArray();
+    
+        foreach (PropertyInfo propertyInfo in addonProperties)
+        {
+            Tinned attribute = propertyInfo.GetCustomAttribute<Tinned>();
+            
+            UIAlignContainer fieldContainer = EditorUIObjects.CreateListOption(rightSideBar, attribute.Key, 
+                AlignDirection.Vertical, HorizontalAlign.Center, VerticalAlign.Top, EditorUIObjects.BaseColour,
+                out UIText fieldName);
+            
+            Type type = propertyInfo.PropertyType;
+            string key = attribute.Key;
+            
+            UIAlignContainer inputContainer = EditorUIObjects.CreateAddonInputField(type, key, fieldContainer, this.SelectedAddon, this);
 
+            UIScene.AddUIProp(fieldContainer);
+            UIScene.AddUIProp(fieldName);
+            UIScene.AddUIProp(inputContainer);
+        }
+        
+        foreach (FieldInfo fieldInfo in addonFields)
+        {
+            Tinned attribute = fieldInfo.GetCustomAttribute<Tinned>();
+            
+            UIAlignContainer fieldContainer = EditorUIObjects.CreateListOption(rightSideBar, attribute.Key, 
+                AlignDirection.Vertical, HorizontalAlign.Center, VerticalAlign.Top, EditorUIObjects.BaseColour,
+                out UIText fieldName);
+            
+            Type type = fieldInfo.FieldType;
+            string key = attribute.Key;
+            
+            UIAlignContainer inputContainer = EditorUIObjects.CreateAddonInputField(type, key, fieldContainer, this.SelectedAddon, this);
+
+            UIScene.AddUIProp(fieldContainer);
+            UIScene.AddUIProp(fieldName);
+            UIScene.AddUIProp(inputContainer);
+        }
+        
+        UIAlignContainer deleteAddonContainer = EditorUIObjects.CreateListOption(rightSideBar, "Delete Addon",
+            alignDirection: AlignDirection.Vertical, HorizontalAlign.Center, VerticalAlign.Top, EditorUIObjects.ButtonColour,
+            out UIText deleteAddonText);
+    
+        deleteAddonContainer.OnLeftClick += (sender, args) => DeleteSelectedAddon();
+        
+        UIScene.AddUIProp(deleteAddonContainer);
+        UIScene.AddUIProp(deleteAddonText);
+        
         UIScene.AddUIProp(rightSideBar);
     }
+
+    
 
     private void DeleteSelectedAddon()
     {
@@ -307,7 +269,7 @@ public class PropEditor : Scene
         this.CurrentFile = "";
     }
 
-    private void SelectAddon(Addon addon)
+    public void SelectAddon(Addon addon)
     {
         UpdateProp();
 
@@ -321,40 +283,33 @@ public class PropEditor : Scene
 
     public void UpdateProp()
     {
-        if(this.LoadedAddons == null || this.LoadedAddons.Length == 0)
+        if(this.LoadedProp.Addons == null || this.LoadedProp.Addons.Count == 0)
             return;
         
         this._isSaved = false;
         
-        this.LoadedProp.UpdateFromJson(CreateWorldPropJson());
+        this.LoadedProp.HotReload(CreateWorldPropJson());
     }
 
     private string CreateWorldPropJson()
     {
         WorldProp.WorldPropJson worldPropJson = new WorldProp.WorldPropJson();
-
-        worldPropJson.Name = this.LoadedProp.Name;
-
-        Dictionary<string, string> addons = new Dictionary<string, string>();
-
-        for (int i = 0; i < this.LoadedAddons.Length; i++)
-        {
-            if(LoadedAddons[i].ToRemove)
-                continue;
-            
-            string attempedName = this.LoadedAddons[i].GetType().Name;
-
-            while (addons.ContainsKey(attempedName))
-            {
-                attempedName += "TYPECLONE";
-            }
-            
-            addons.Add(attempedName, JsonConvert.SerializeObject(this.LoadedAddonsJson[i]));
-        }
-
-        worldPropJson.Addons = addons;
-
-        return JsonConvert.SerializeObject(worldPropJson);
+        
+         worldPropJson.Name = this.LoadedProp.Name;
+        
+         List<WorldProp.WorldPropJson.PropAddon> addons = new List<WorldProp.WorldPropJson.PropAddon>();
+        
+         foreach(Addon addon in this.LoadedProp.Addons.Values)
+         {
+             WorldProp.WorldPropJson.PropAddon propAddon =
+                 new WorldProp.WorldPropJson.PropAddon(addon.GetType().FullName, addon.ExportJson());
+                
+             addons.Add(propAddon);
+         }
+        
+         worldPropJson.Addons = addons;
+        
+         return JsonConvert.SerializeObject(worldPropJson);
     }
 
     private void GenerateTopMenuBar()
@@ -511,7 +466,7 @@ public class PropEditor : Scene
     {
         UIAlignContainer addonList = CreatePopupMenu(300, 300, "Create Addon");
         
-        foreach (Type type in _typeMap.Keys)
+        foreach (Type type in Assembly.GetExecutingAssembly().GetTypes().Where(t => t.IsSubclassOf(typeof(Addon)) || t == typeof(Addon)))
         {
             if(type == typeof(Transform))
                 continue;
@@ -588,6 +543,7 @@ public class PropEditor : Scene
             AlignDirection = AlignDirection.Vertical,
             HorizontalAlign =  HorizontalAlign.Center,
             VerticalAlign = VerticalAlign.Top,
+            isScrollable = true,
             Spacing = 10
         };
 
@@ -608,8 +564,6 @@ public class PropEditor : Scene
 
     private Addon CreateAddonFromType(Type type)
     {
-        Addon addon;
-        
         RequiresAddon attribute = type.GetCustomAttribute<RequiresAddon>();
 
         if (attribute != null && this.LoadedProp.GetAddon(attribute.AddonType) == null)
@@ -618,40 +572,7 @@ public class PropEditor : Scene
             CreateAddonFromType(attribute.AddonType);
         }
 
-        if (type == typeof(Sprite))
-        {
-            Console.WriteLine("Creating Sprite");
-            addon = new Sprite($"{LoadedProp.Name}Sprite", "None");
-        }
-        else if (type == typeof(AnimationManager))
-        {
-            addon = new AnimationManager($"{LoadedProp.Name}AnimationManager", "None");
-        }
-        else if (type == typeof(Collider))
-        {
-            addon = new Collider($"{LoadedProp.Name}Collider", 16, 16);
-        }
-        else if (type == typeof(PlayerController))
-        {
-            addon = new PlayerController($"{LoadedProp.Name}PlayerController");
-        }
-        else if (type == typeof(YSorter))
-        {
-            addon = new YSorter($"{LoadedProp.Name}YSorter");
-        }
-        else if (type == typeof(PhysicsObject))
-        {
-            addon = new PhysicsObject($"{LoadedProp.Name}PhysicsObject");
-        }
-        else if(type == typeof(Light))
-        {
-            addon = new Light($"{LoadedProp.Name}Light", 1, 10, Color.Orange);
-        }
-        else
-        {
-            throw new NotImplementedException($"The type {type.Name} is not implemented");
-            //You can create a type implementation in this chain without having to have it support the editor.
-        }
+        Addon addon = Addon.CreateEmpty(type);
         
         this.LoadedProp.AddAddon(addon);
 
@@ -738,29 +659,6 @@ public class PropEditor : Scene
         UIScene.AddUIProp(createAddonText);
 
         createAddonContainer.OnLeftClick += (sender, args) => GenerateCreateAddonMenu();
-
-        this.LoadedAddons = this.LoadedProp.Addons.Values.ToArray();
-        this.LoadedAddonsJson = new IBeanJson[this.LoadedAddons.Length];
-
-        int i = 0;
-        foreach (Addon addon in this.LoadedAddons)
-        {
-            if (addon is IJsonParsable parsable)
-            {
-                if (this._typeMap.TryGetValue(addon.GetType(), out Type jsonType))
-                {
-                    this.LoadedAddonsJson[i] =
-                        (IBeanJson)JsonConvert.DeserializeObject(parsable.ExportJson(), jsonType);
-                }
-                else
-                {
-                    this.LoadedAddonsJson[i] =
-                        (IBeanJson)JsonConvert.DeserializeObject(parsable.ExportJson(), typeof(BasicBeanJson));
-                }
-            }
-
-            i++;
-        }
     }
     #endif
 }
